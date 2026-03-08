@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crime Map — 48312</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111827; color: #f9fafb; height: 100vh; display: flex; flex-direction: column; }
+    #header { padding: 12px 16px; background: #1f2937; border-bottom: 1px solid #374151; flex-shrink: 0; }
+    #header h1 { font-size: 16px; font-weight: 600; }
+    #header p { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    #map { flex: 1; }
+    #legend {
+      position: absolute;
+      bottom: 24px;
+      right: 12px;
+      z-index: 1000;
+      background: rgba(17,24,39,0.92);
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-height: 280px;
+      overflow-y: auto;
+      color: #f9fafb;
+      min-width: 140px;
+    }
+    #legend h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; color: #9ca3af; }
+    #errors { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 500px; width: 90%; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>Crime Map — Zip Code 48312</h1>
+    <p>6 incidents within 5mi · last 30 days · 3/8/2026</p>
+  </div>
+  <div id="map"></div>
+  <div id="legend">
+    <h3>Crime Types</h3>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:12px;height:12px;border-radius:50%;background:#6b7280;border:1px solid #fff;flex-shrink:0"></div>
+          <span style="font-size:11px">News Alert</span>
+        </div>
+  </div>
+  <div id="errors"><div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e">
+          <strong>Some sources had errors:</strong>
+          <div>spotcrime: SpotCrime API error: HTTP 401 Unauthorized</div><div>crimemapping: CrimeMapping API error: HTTP 406 Not Acceptable</div><div>arcgis: All ArcGIS endpoints failed: ArcGIS macomb-county (json) error: HTTP 404; ArcGIS semcog (json) error: HTTP 401; ArcGIS macomb-sheriff (json) error: HTTP 404</div><div>nsopw: NSOPW API error: HTTP 404 Not Found</div><div>fbi: FBI_API_KEY is not set. Get a free key at https://api.data.gov/signup</div>
+        </div></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
+  <script>
+    var map = L.map('map').setView([42.5555296, -82.9971628], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Center marker
+    L.circleMarker([42.5555296, -82.9971628], {
+      radius: 10,
+      fillColor: "#3b82f6",
+      color: "#1d4ed8",
+      weight: 2,
+      fillOpacity: 0.5
+    }).addTo(map).bindPopup("<strong>Search Center</strong><br/>ZIP 48312");
+
+    // Radius circle
+    L.circle([42.5555296, -82.9971628], {
+      radius: 8046.7,
+      color: "#3b82f6",
+      fillColor: "#3b82f6",
+      fillOpacity: 0.04,
+      weight: 1,
+      dashArray: "4 4"
+    }).addTo(map);
+
+    // Crime markers
+    (function() {
+    var marker0 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker0.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">Dearborn, Sterling Heights police turn to drones to reach emergency scenes faster - MLive.com</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Mar 8, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMixwFBVV95cUxONzllZEticjRqdFQ5WTFCbWlKVU96VU1pV3FIeEtrMlFnOEs1M0o2aWZJRjF6dDhVYmlNM2ZNQy1vX3cxNGREMkswMGYxMHFVUFgteDhGTVYtTXZCOThLdmtEUHJEODFWbUJ3YUFLT2hsTDhwTnFyZXZ6ck5SQ3Y5aGxEaXdDMF8zMk5rRDgwcXBmc0FxeHBtNDZGcUg3ank2WXBRTjBfY09PY0pEbFplcmZZZXN4c0tPNWpHN1ZUNlJrSzdCR1RB0gHbAUFVX3lxTE5ZbTRfSFlCcnYzRTlCRE1lYjdRcWVqUU9WNnk0allEN3lHSkxRZVhndmlJVS1TWFRqMGJPdVpQSXBpXzFmbURESVpnek9yVmRlUVI5QlVRcTAxdmhmSVRtZGc0VGg4X1dVdmRLU1VBaTZYaUVWVjExRURHcmZFaHZJX1VXT0ZieFE1ZHUwOWZCaDVJTkJMaEYyRkxWZUpvYmRSQnI5MW1pb1JURXg0eDQwYmtMY1o3Um5CcnRQaGh4WC1RaGVIdWRmZ0otZXJpUnlVSzRsT2QxZm1scw?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+(function() {
+    var marker1 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker1.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">Macomb County man pleads no contest in child pornography investigation - CBS News</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Mar 4, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMirAFBVV95cUxORUpaSmp1QnNhaldETUUtZDJXYllvOEs0NDcxQUluTHh6QV9lNU5EdWI0UVBzSVZYN0tjQ25CSUFjMERtWHNuQWFzN2xrUmtURmQxT3dCR2hRTExwSjd1Z3RlRHlnclNGSjdxWVdUbmVUc1NzOE93Z05iQUNSaTE1MDdxNVRmNXR6WjJBSGIyUXM5YmY0YzFjMHl2dnBaZEZtMjF5Y0tWWjBBZEN5?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+(function() {
+    var marker2 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker2.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">Shelby Township man found guilty on 4 counts criminal sexual conduct - CBS News</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Feb 23, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMimAFBVV95cUxOWmtCdmY0Z2ZjZDFyX0paNm5qSDdLMno5a0ExZ2gxR1dlMTJaUFR1WnRoOHoxQnBQbmRMVVhJc2QtazdqbnFQZ0c4enNhcGV4YmlwTDdSa3c0YlRGYjdGTTFHY3FkMmtVblJ0VThVZjB0bVVTN0RES090QmcxRWZ6RjJENlhJVVQ0cldKSFUyMERwejVTUU1XTA?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+(function() {
+    var marker3 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker3.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">Sterling Heights police investigate alleged animal abuse case caught on doorbell camera - Macomb Daily</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Feb 22, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMixgFBVV95cUxQVk03clQ0MU5TbVdLMnN2OHVzdjBBTDFZMUpNMDJTTkJIeExVanVVSTZCY2JoSDJWTW04cXlPdWREcGhpa0hZXzlIWWI3X0drR19GcHlPVnhGcHluQ3h3NXZDUE9Ub3FYc2J4VjJYYVB4RVRSb05mNXctYlgwU2x0Q1lhTHREYUdtMGRTOTNjQUJuUzNWdmhQRmg5Nlh6QUhGcHpobVFrd3RkcGM2UWg4NkRhVEpGQmpHTVVfNlV6ZTNudGxpOUE?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+(function() {
+    var marker4 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker4.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">2 Arrested In Shooting Outside Macomb County Shopping Mall: Police - Patch</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Feb 13, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMiogFBVV95cUxNRzZlYklTLUtQeEhvTnBUS01iNlBwQ2dDV0ZBNGhoN1dNLUVmMUdOT0I5bVNOaVFaU3hJVG1tQUo0M1NkUDdiaWFENzR4XzBMMXFkQ09JQVlKejkzZEpkaTJockN3ZkQwUXpRSFNneWtsTFJocG84YWI3cmVEd0YxZ1d3MzJlWjc0N1BPeGM1MDJvSUlSQmZWYlVrdWFGUE5pM3c?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+(function() {
+    var marker5 = L.circleMarker([42.5555296, -82.9971628], {
+      radius: 7,
+      fillColor: "#6b7280",
+      color: "#ffffff",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    marker5.bindPopup("<div style=\"font-family:sans-serif;min-width:180px;max-width:280px\">\n      <strong style=\"font-size:14px;color:#6b7280\">News Alert</strong>\n      <div style=\"margin-top:4px;font-size:12px;color:#374151\">Pair convicted of criminal enterprise in Michigan signature-fraud case - Macomb Daily</div>\n      <div style=\"margin-top:6px;font-size:11px;color:#6b7280\">\n        <div>48312 area</div>\n        <div>Feb 9, 2026</div>\n        <div style=\"text-transform:uppercase;letter-spacing:0.05em;margin-top:2px\">news · low</div>\n        <br/><a href=\"https://news.google.com/rss/articles/CBMirwFBVV95cUxNSFBGMmdpbGtPQk1QQmpvaTQ4NFVGZG53Y3Fza19ZSHE5aXNFN21wcU5kLWtOUTFFR19JRXRzRTBDUU9oN0dwajA0RmhjSDJGRll5VDlyNXBHVHN6SExiQm1hQUlXbnRjaFR4b0d6WHpPUFFXZ0FPVTBCU0pFSDJwcWVNVFBPcktCejRLWEd3bV9fV0ZYVC1ySDJfdUtkdllfV1lJSkxfdm95cGxLRGFB?oc=5\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#3b82f6\">View source</a>\n      </div>\n    </div>");
+  })();
+  </script>
+</body>
+</html>

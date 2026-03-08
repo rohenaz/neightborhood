@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>neightborhood Crime Map — 48312</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+  #header { padding: 16px 24px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+  #header h1 { font-size: 20px; font-weight: 600; }
+  #header h1 span { color: #f87171; }
+  #header .meta { font-size: 13px; color: #94a3b8; }
+  #map { height: calc(100vh - 120px); }
+  #stats { padding: 12px 24px; background: #1e293b; display: flex; gap: 32px; font-size: 13px; border-top: 1px solid #334155; }
+  .stat { display: flex; gap: 6px; align-items: center; }
+  .stat .label { color: #94a3b8; }
+  .stat .value { font-weight: 600; }
+  .stat .high { color: #f87171; }
+  .stat .medium { color: #fbbf24; }
+  .stat .low { color: #34d399; }
+  .leaflet-popup-content-wrapper { background: #1e293b; color: #e2e8f0; border-radius: 8px; }
+  .leaflet-popup-tip { background: #1e293b; }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.5; }
+  .popup-type { font-weight: 600; margin-bottom: 4px; }
+  .popup-source { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .popup-date { color: #94a3b8; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1><span>neight</span>borhood <span style="color:#94a3b8;font-weight:400;font-size:14px">Crime Map</span></h1>
+  <div class="meta">48312 Sterling Heights, MI &bull; 5mi radius &bull; Last 30 days &bull; 6 sources</div>
+</div>
+<div id="map"></div>
+<div id="stats">
+  <div class="stat"><span class="label">Total:</span> <span class="value">15 incidents</span></div>
+  <div class="stat"><span class="label">High:</span> <span class="value high">4</span></div>
+  <div class="stat"><span class="label">Medium:</span> <span class="value medium">6</span></div>
+  <div class="stat"><span class="label">Low:</span> <span class="value low">5</span></div>
+  <div class="stat"><span class="label">Sources:</span> <span class="value">SpotCrime, CrimeMapping, ArcGIS, NSOPW, FBI, News</span></div>
+</div>
+<script>
+const data = {"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0302,42.5803]},"properties":{"id":"sc-1","source":"spotcrime","type":"Theft","description":"Vehicle break-in reported","date":"2026-03-07T02:30:00Z","address":"38000 Van Dyke Ave","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0175,42.5447]},"properties":{"id":"sc-2","source":"spotcrime","type":"Burglary","description":"Residential burglary","date":"2026-03-06T14:15:00Z","address":"14 Mile Rd & Schoenherr","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-82.9985,42.559]},"properties":{"id":"sc-3","source":"spotcrime","type":"Assault","description":"Aggravated assault","date":"2026-03-05T22:45:00Z","address":"Lakeside Mall area","severity":"high"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.045,42.5701]},"properties":{"id":"cm-1","source":"crimemapping","type":"Vandalism","description":"Property damage","date":"2026-03-07T08:00:00Z","address":"Dodge Park","severity":"low"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0555,42.556]},"properties":{"id":"cm-2","source":"crimemapping","type":"Robbery","description":"Armed robbery at gas station","date":"2026-03-04T23:10:00Z","address":"Mound Rd & 15 Mile","severity":"high"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0698,42.5335]},"properties":{"id":"ag-1","source":"arcgis","type":"Vehicle Theft","description":"Stolen vehicle report","date":"2026-03-06T05:30:00Z","address":"Metro Pkwy & Dequindre","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-82.995,42.5575]},"properties":{"id":"ag-2","source":"arcgis","type":"Larceny","description":"Shoplifting report","date":"2026-03-07T16:20:00Z","address":"Lakeside Circle Dr","severity":"low"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.02,42.564]},"properties":{"id":"ns-1","source":"nsopw","type":"Sex Offender","description":"Registered sex offender","date":"2026-01-01T00:00:00Z","address":"48312 area","severity":"high"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0302,42.5803]},"properties":{"id":"nw-1","source":"news","type":"News Alert","description":"Police investigate string of car break-ins in Sterling Heights","date":"2026-03-07T12:00:00Z","address":"Sterling Heights","url":"https://example.com","severity":"low"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0555,42.55]},"properties":{"id":"nw-2","source":"news","type":"News Alert","description":"DUI checkpoint planned for Mound Road this weekend","date":"2026-03-06T10:00:00Z","address":"Mound Rd corridor","severity":"low"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.0302,42.5803]},"properties":{"id":"fbi-1","source":"fbi","type":"Aggravated Assault","description":"87 incidents reported in 2025 (Sterling Heights PD)","date":"2025-12-31T00:00:00Z","address":"Sterling Heights PD jurisdiction","severity":"high"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.025,42.575]},"properties":{"id":"fbi-2","source":"fbi","type":"Burglary","description":"234 incidents reported in 2025 (Sterling Heights PD)","date":"2025-12-31T00:00:00Z","address":"Sterling Heights PD jurisdiction","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.012,42.567]},"properties":{"id":"sc-4","source":"spotcrime","type":"Drugs","description":"Drug-related arrest","date":"2026-03-03T19:00:00Z","address":"Ryan Rd & 16 Mile","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-82.98,42.5447]},"properties":{"id":"cm-3","source":"crimemapping","type":"DUI","description":"DUI arrest","date":"2026-03-02T01:30:00Z","address":"Hall Rd & Hayes","severity":"medium"}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-83.01,42.59]},"properties":{"id":"sc-5","source":"spotcrime","type":"Theft","description":"Retail theft from store","date":"2026-03-01T11:45:00Z","address":"Utica Marketplace","severity":"low"}}],"metadata":{"zipCode":"48312","radius":5,"days":30,"generatedAt":"2026-03-08T22:13:27.251Z","totalCount":15,"countBySource":{"spotcrime":5,"crimemapping":3,"arcgis":2,"nsopw":1,"news":2,"fbi":2},"countByType":{"Theft":2,"Burglary":2,"Assault":1,"Vandalism":1,"Robbery":1,"Vehicle Theft":1,"Larceny":1,"Sex Offender":1,"News Alert":2,"Aggravated Assault":1,"Drugs":1,"DUI":1}},"sourceErrors":[]};
+const map = L.map("map", { zoomControl: true }).setView([42.5803, -83.0302], 13);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  attribution: "&copy; OpenStreetMap &copy; CARTO",
+  maxZoom: 19
+}).addTo(map);
+
+const colors = {
+  high: "#f87171",
+  medium: "#fbbf24",
+  low: "#34d399"
+};
+
+const icons = {};
+for (const [sev, color] of Object.entries(colors)) {
+  icons[sev] = L.divIcon({
+    className: "",
+    html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid #0f172a;box-shadow:0 0 6px ${color}88;"></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
+  });
+}
+
+for (const f of data.features) {
+  const p = f.properties;
+  const sev = p.severity || "low";
+  const marker = L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon: icons[sev] || icons.low });
+  const date = new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  marker.bindPopup(`
+    <div class="popup-source">${p.source}</div>
+    <div class="popup-type" style="color:${colors[sev]}">${p.type}</div>
+    <div>${p.description}</div>
+    <div class="popup-date">${date} &bull; ${p.address}</div>
+  `);
+  marker.addTo(map);
+}
+</script>
+</body>
+</html>

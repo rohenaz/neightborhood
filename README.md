@@ -1,10 +1,18 @@
+<div align="center">
+
+<img src=".github/hero-banner.jpg" alt="neightborhood — Live crime data for AI agents" width="100%" />
+
 # neightborhood
+
+**Live crime data for AI agents.** 6 sources. 5 tools. Any US zip code.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+</div>
 
 A Claude Code plugin that aggregates live crime data from six public sources and exposes it through MCP tools. Accepts any US zip code and returns unified GeoJSON, statistics, interactive maps, and news alerts.
 
-The name is a portmanteau of "neigh" and "neighborhood."
-
-Optimized for Sterling Heights, MI (Macomb County) but works for any US zip code.
+Optimized for Sterling Heights, MI (Macomb County) but works nationwide.
 
 ## Quick Start
 
@@ -24,6 +32,10 @@ Or run the slash command:
 ```
 /crime-report 48312
 ```
+
+<div align="center">
+<img src="promo/neightborhood-crime-map-demo.gif" alt="neightborhood crime map demo" width="720" />
+</div>
 
 ## Data Sources
 
