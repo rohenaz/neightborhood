@@ -1,11 +1,11 @@
 ---
 name: crime-data
-description: This skill should be used when a user asks about crime data, crime maps, neighborhood safety, crime reports, incident data, crime statistics, sex offenders, local crime, safety of an area, "is this zip code safe", "what crimes happened near me", crime trends, or safety assessments for any U.S. zip code. It queries live crime incidents, statistics, alerts, and interactive maps using the neightborhood MCP tools.
+description: This skill should be used when a user asks about crime data, crime maps, neighborhood safety, crime reports, incident data, crime statistics, sex offenders, local crime, safety of an area, "is this zip code safe", "what crimes happened near me", crime trends, or safety assessments for any U.S. zip code. It queries live crime incidents, statistics, alerts, and interactive maps using the neighborhood MCP tools.
 ---
 
 # Crime Data
 
-Use the neightborhood MCP server to query, interpret, and present crime data for U.S. zip codes.
+Use the neighborhood MCP server to query, interpret, and present crime data for U.S. zip codes.
 
 ## Available Tools
 
@@ -190,7 +190,7 @@ Call `get_crime_stats`. Present `countByType` sorted descending. Focus on the to
 
 - If a zip code returns zero incidents across all sources, check `sourceErrors` first. If sources failed, report the failure. If sources succeeded with zero results, state that no incidents were reported for that area in the time range.
 - If `list_sources` shows more than 2 sources offline, warn the user that results may be significantly incomplete before proceeding.
-- If the MCP server itself is unavailable, inform the user that the neightborhood crime data service is unreachable and suggest they try again later.
+- If the MCP server itself is unavailable, inform the user that the neighborhood crime data service is unreachable and suggest they try again later.
 
 ## Parameter Defaults
 

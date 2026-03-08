@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="600" viewBox="0 0 1920 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1729"/>
+      <stop offset="100%" stop-color="#1a2332"/>
+    </linearGradient>
+    <radialGradient id="pin-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orange-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="600" fill="url(#bg)"/>
+
+  <!-- Grid lines (map streets) -->
+  <g stroke="#1e2d3d" stroke-width="0.5" opacity="0.5">
+    <line x1="0" y1="75" x2="1920" y2="80"/>
+    <line x1="0" y1="160" x2="1920" y2="155"/>
+    <line x1="0" y1="240" x2="1920" y2="245"/>
+    <line x1="0" y1="330" x2="1920" y2="325"/>
+    <line x1="0" y1="420" x2="1920" y2="425"/>
+    <line x1="0" y1="510" x2="1920" y2="505"/>
+    <line x1="160" y1="0" x2="165" y2="600"/>
+    <line x1="340" y1="0" x2="335" y2="600"/>
+    <line x1="520" y1="0" x2="525" y2="600"/>
+    <line x1="700" y1="0" x2="695" y2="600"/>
+    <line x1="880" y1="0" x2="885" y2="600"/>
+    <line x1="1060" y1="0" x2="1055" y2="600"/>
+    <line x1="1240" y1="0" x2="1245" y2="600"/>
+    <line x1="1420" y1="0" x2="1415" y2="600"/>
+    <line x1="1600" y1="0" x2="1605" y2="600"/>
+    <line x1="1780" y1="0" x2="1775" y2="600"/>
+  </g>
+
+  <!-- Diagonal streets -->
+  <g stroke="#1e2d3d" stroke-width="0.5" opacity="0.35">
+    <line x1="600" y1="0" x2="1920" y2="550"/>
+    <line x1="900" y1="0" x2="1920" y2="380"/>
+    <line x1="0" y1="200" x2="800" y2="600"/>
+    <line x1="1200" y1="0" x2="1920" y2="240"/>
+    <line x1="1400" y1="600" x2="1920" y2="400"/>
+  </g>
+
+  <!-- Pin glows - right side concentration -->
+  <circle cx="1100" cy="100" r="30" fill="url(#pin-glow)"/>
+  <circle cx="1300" cy="160" r="28" fill="url(#pin-glow)"/>
+  <circle cx="1500" cy="80" r="25" fill="url(#pin-glow)"/>
+  <circle cx="1700" cy="140" r="30" fill="url(#pin-glow)"/>
+  <circle cx="1150" cy="280" r="26" fill="url(#pin-glow)"/>
+  <circle cx="1350" cy="320" r="30" fill="url(#pin-glow)"/>
+  <circle cx="1550" cy="260" r="28" fill="url(#pin-glow)"/>
+  <circle cx="1750" cy="300" r="24" fill="url(#pin-glow)"/>
+  <circle cx="1200" cy="440" r="25" fill="url(#pin-glow)"/>
+  <circle cx="1400" cy="480" r="30" fill="url(#pin-glow)"/>
+  <circle cx="1600" cy="420" r="26" fill="url(#pin-glow)"/>
+  <circle cx="1800" cy="470" r="22" fill="url(#pin-glow)"/>
+  <circle cx="1050" cy="500" r="24" fill="url(#pin-glow)"/>
+  <circle cx="1650" cy="550" r="20" fill="url(#pin-glow)"/>
+  <circle cx="1850" cy="550" r="26" fill="url(#pin-glow)"/>
+
+  <!-- Scattered left side pins (sparse) -->
+  <circle cx="850" cy="150" r="20" fill="url(#pin-glow)"/>
+  <circle cx="920" cy="400" r="22" fill="url(#pin-glow)"/>
+  <circle cx="780" cy="500" r="18" fill="url(#pin-glow)"/>
+
+  <!-- Red pins - right cluster -->
+  <g fill="#ef4444">
+    <path d="M1100,80 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1100" cy="93" r="4" fill="#7f1d1d"/>
+
+    <path d="M1300,140 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1300" cy="153" r="4" fill="#7f1d1d"/>
+
+    <path d="M1500,60 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1500" cy="73" r="4" fill="#7f1d1d"/>
+
+    <path d="M1700,120 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1700" cy="133" r="4" fill="#7f1d1d"/>
+
+    <path d="M1150,260 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z"/>
+    <circle cx="1150" cy="271" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1350,300 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1350" cy="313" r="4" fill="#7f1d1d"/>
+
+    <path d="M1550,240 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1550" cy="253" r="4" fill="#7f1d1d"/>
+
+    <path d="M1750,280 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z"/>
+    <circle cx="1750" cy="291" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1200,420 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1200" cy="433" r="4" fill="#7f1d1d"/>
+
+    <path d="M1400,460 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z"/>
+    <circle cx="1400" cy="473" r="4" fill="#7f1d1d"/>
+
+    <path d="M1600,400 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z"/>
+    <circle cx="1600" cy="411" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1800,450 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z"/>
+    <circle cx="1800" cy="461" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1050,480 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z" opacity="0.8"/>
+    <circle cx="1050" cy="491" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1650,530 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z" opacity="0.7"/>
+    <circle cx="1650" cy="541" r="3.5" fill="#7f1d1d"/>
+
+    <path d="M1850,530 c-8,0-14,6-14,14 c0,10 14,22 14,22 s14,-12 14,-22 c0,-8-6,-14-14,-14z" opacity="0.8"/>
+    <circle cx="1850" cy="543" r="4" fill="#7f1d1d"/>
+  </g>
+
+  <!-- Orange accent pins -->
+  <g fill="#f97316">
+    <path d="M850,130 c-7,0-12,5-12,12 c0,9 12,19 12,19 s12,-10 12,-19 c0,-7-5,-12-12,-12z" opacity="0.8"/>
+    <circle cx="850" cy="141" r="3.5" fill="#7c2d12"/>
+
+    <path d="M920,380 c-6,0-10,4-10,10 c0,7 10,16 10,16 s10,-9 10,-16 c0,-6-4,-10-10,-10z" opacity="0.75"/>
+    <circle cx="920" cy="389" r="3" fill="#7c2d12"/>
+
+    <path d="M780,480 c-6,0-10,4-10,10 c0,7 10,16 10,16 s10,-9 10,-16 c0,-6-4,-10-10,-10z" opacity="0.7"/>
+    <circle cx="780" cy="489" r="3" fill="#7c2d12"/>
+
+    <path d="M1480,380 c-6,0-10,4-10,10 c0,7 10,16 10,16 s10,-9 10,-16 c0,-6-4,-10-10,-10z" opacity="0.8"/>
+    <circle cx="1480" cy="389" r="3" fill="#7c2d12"/>
+  </g>
+
+  <!-- Main text - left aligned -->
+  <text x="80" y="260" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="96" font-weight="800" fill="white" letter-spacing="-2">neighborhood</text>
+
+  <!-- Subtitle -->
+  <text x="84" y="330" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="36" font-weight="400" fill="#94a3b8">Live crime data for AI agents.</text>
+</svg>

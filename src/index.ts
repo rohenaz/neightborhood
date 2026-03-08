@@ -204,7 +204,7 @@ const TOOLS = [
 
 const server = new Server(
   {
-    name: "neightborhood",
+    name: "neighborhood",
     version: "1.0.0",
   },
   {
@@ -316,7 +316,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("neightborhood MCP server running on stdio");
+  console.error("neighborhood MCP server running on stdio");
 }
 
 main().catch((err) => {

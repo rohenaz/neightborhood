@@ -49,7 +49,7 @@ async function fetchAgencyOffenses(
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "neightborhood-mcp/1.0",
+      "User-Agent": "neighborhood-mcp/1.0",
     },
     signal: AbortSignal.timeout(15000),
   });
@@ -77,7 +77,7 @@ export async function fetchFBIAgenciesByState(
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "neightborhood-mcp/1.0",
+      "User-Agent": "neighborhood-mcp/1.0",
     },
     signal: AbortSignal.timeout(15000),
   });

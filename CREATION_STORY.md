@@ -1,4 +1,4 @@
-# neightborhood Creation Story
+# neighborhood Creation Story
 
 ## Timeline
 
@@ -15,7 +15,7 @@
 > "I'd like it to work accepting any zip code if you have generic sources, but it's most important that it covers my area well. If it supports many different live sources of data, that would be better."
 
 ### 3. Plugin Decision
-> "I think we want to make this a Claude Code plugin. publish to new repo rohenaz/neightborhood"
+> "I think we want to make this a Claude Code plugin. publish to new repo rohenaz/neighborhood"
 
 ### 4. Delegation Philosophy
 > "Please remember: never do anything yourself. Always delegate tasks as often as possible and make sure adequate context and workload are supplied. Always."
@@ -67,7 +67,7 @@ The following agents ran in parallel during the build:
 
 ## Repo
 
-- **GitHub**: https://github.com/rohenaz/neightborhood
+- **GitHub**: https://github.com/rohenaz/neighborhood
 - **Initial commit**: 0b61f0e (29 files, 3,463 insertions)
 - **Validation fix commit**: 8839ce3
 

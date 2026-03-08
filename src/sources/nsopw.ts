@@ -45,7 +45,7 @@ export async function fetchNSOPW(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      "User-Agent": "neightborhood-mcp/1.0",
+      "User-Agent": "neighborhood-mcp/1.0",
       Referer: "https://www.nsopw.gov/",
       Origin: "https://www.nsopw.gov",
     },

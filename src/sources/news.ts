@@ -125,7 +125,7 @@ async function fetchFeed(url: string, sourceName: string): Promise<RSSItem[]> {
   const response = await fetch(url, {
     headers: {
       Accept: "application/rss+xml, application/xml, text/xml, */*",
-      "User-Agent": "neightborhood-mcp/1.0 (crime-data-aggregator)",
+      "User-Agent": "neighborhood-mcp/1.0 (crime-data-aggregator)",
     },
     signal: AbortSignal.timeout(10000),
   });

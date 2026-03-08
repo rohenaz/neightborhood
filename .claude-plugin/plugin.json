@@ -1,12 +1,12 @@
 {
-  "name": "neightborhood",
+  "name": "neighborhood",
   "version": "1.0.0",
   "description": "Live crime data aggregation MCP plugin — queries SpotCrime, CrimeMapping, ArcGIS, NSOPW, FBI CDE, and news RSS by zip code. Returns unified GeoJSON for map rendering.",
   "author": {
     "name": "rohenaz",
     "url": "https://github.com/rohenaz"
   },
-  "repository": "https://github.com/rohenaz/neightborhood",
+  "repository": "https://github.com/rohenaz/neighborhood",
   "license": "MIT",
   "keywords": ["crime", "safety", "map", "geojson", "mcp", "neighborhood"]
 }

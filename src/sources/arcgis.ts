@@ -113,7 +113,7 @@ async function queryEndpoint(
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "neightborhood-mcp/1.0",
+      "User-Agent": "neighborhood-mcp/1.0",
     },
     signal: AbortSignal.timeout(15000),
   });
@@ -206,7 +206,7 @@ async function queryEndpointJSON(
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "neightborhood-mcp/1.0",
+      "User-Agent": "neighborhood-mcp/1.0",
     },
     signal: AbortSignal.timeout(15000),
   });

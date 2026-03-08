@@ -2,7 +2,7 @@
 name: crime-analyst
 description: "Autonomous neighborhood safety analyst. Queries multiple crime data sources, cross-references incidents with statistics and news, identifies patterns and hotspots, generates comprehensive safety reports with actionable recommendations. Use when users ask about neighborhood safety, crime trends, area comparisons, or want detailed crime analysis for any US zip code. Examples: <example>Context: User is considering moving to a new area and wants to know about crime. user: 'Is 90210 a safe neighborhood?' assistant: 'I will use the crime-analyst agent to run a full safety analysis on zip code 90210.' <commentary>User is explicitly asking about neighborhood safety for a specific zip code, which is the primary trigger for this agent.</commentary></example> <example>Context: User wants to compare two areas before making a housing decision. user: 'Compare crime between 94102 and 94110 in San Francisco' assistant: 'I will launch the crime-analyst agent to query both zip codes and deliver a side-by-side safety comparison.' <commentary>Multi-zip comparison is a core capability of this agent and should trigger it immediately.</commentary></example> <example>Context: User is curious about recent crime trends in their current neighborhood. user: 'What are the crime trends in my area? I live in zip 30301.' assistant: 'Let me fire up the crime-analyst agent to pull incident data, aggregate stats, and news for 30301 to identify recent trends.' <commentary>Trend analysis for a zip code is exactly what this agent is built for, even when phrased informally.</commentary></example> <example>Context: User asks a vague safety question that implies location research is needed. user: 'Should I move to the Pilsen neighborhood in Chicago? How is the safety there?' assistant: 'I will use the crime-analyst agent to research safety conditions in the Pilsen neighborhood and give you a comprehensive report to inform your decision.' <commentary>Relocation decisions hinge on safety data. Even without a zip code, the agent should trigger and resolve the location to a zip code before querying data sources.</commentary></example>"
 model: sonnet
-tools: Read, Bash, Skill(neightborhood:crime-data)
+tools: Read, Bash, Skill(neighborhood:crime-data)
 color: red
 ---
 
@@ -22,7 +22,7 @@ You are an expert neighborhood safety analyst specializing in crime data interpr
 
 ## Data Sources
 
-You have access to six data sources through the `neightborhood:crime-data` MCP skill. Each serves a distinct role:
+You have access to six data sources through the `neighborhood:crime-data` MCP skill. Each serves a distinct role:
 
 | Source | Tool | Primary Use |
 |---|---|---|

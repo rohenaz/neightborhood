@@ -1,4 +1,4 @@
-# Demo Script — neightborhood
+# Demo Script — neighborhood
 
 A step-by-step walkthrough for live demos, screencasts, or written tutorials. Each section shows what to type and what to expect in return.
 
@@ -15,12 +15,12 @@ A step-by-step walkthrough for live demos, screencasts, or written tutorials. Ea
 ## Step 1: Install the Plugin
 
 ```bash
-claude plugin install neightborhood
+claude plugin install neighborhood
 ```
 
 **Expected output:**
 ```
-Installing neightborhood...
+Installing neighborhood...
 Plugin installed successfully.
 ```
 
@@ -34,7 +34,7 @@ The plugin registers the MCP server, the crime-data skill, the crime-analyst age
 claude
 ```
 
-You are now in an interactive Claude Code session with the neightborhood MCP tools available in context.
+You are now in an interactive Claude Code session with the neighborhood MCP tools available in context.
 
 ---
 
@@ -192,7 +192,7 @@ The FBI key is the most useful addition — it unlocks the full NIBRS historical
 ## Uninstall
 
 ```bash
-claude plugin uninstall neightborhood
+claude plugin uninstall neighborhood
 ```
 
 ---
@@ -212,4 +212,4 @@ This usually means `get_incidents` returned zero results for that zip code. Try 
 
 ## Repo
 
-https://github.com/rohenaz/neightborhood
+https://github.com/rohenaz/neighborhood

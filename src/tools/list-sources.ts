@@ -66,7 +66,7 @@ async function checkSourceOnline(testUrl: string): Promise<boolean> {
     const response = await fetch(testUrl, {
       method: "HEAD",
       signal: AbortSignal.timeout(5000),
-      headers: { "User-Agent": "neightborhood-mcp/1.0" },
+      headers: { "User-Agent": "neighborhood-mcp/1.0" },
     });
     return response.ok || response.status < 500;
   } catch {

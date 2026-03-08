@@ -58,14 +58,14 @@ What shipped:
 Install it now:
 
 ```
-claude plugin install neightborhood
+claude plugin install neighborhood
 ```
 
 Then ask Claude: "What's the crime like near 48312?"
 
 Works for any US zip code. No required API keys — runs on public endpoints out of the box.
 
-MIT licensed: https://github.com/rohenaz/neightborhood
+MIT licensed: https://github.com/rohenaz/neighborhood
 
 ---
 
@@ -79,10 +79,6 @@ Multi-agent parallel development produces real software. This is what that looks
 
 **Tweet 7**
 
-"neightborhood" — portmanteau of neigh + neighborhood.
-
-The name was also generated in the session.
-
 Built by agents and consumed by agents.
 
-https://github.com/rohenaz/neightborhood
+https://github.com/rohenaz/neighborhood

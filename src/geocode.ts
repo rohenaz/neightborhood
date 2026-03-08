@@ -2,7 +2,7 @@ import { geocodeCache } from "./cache.ts";
 import type { Coordinates } from "./types.ts";
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
-const USER_AGENT = "neightborhood-mcp/1.0 (crime-data-aggregator)";
+const USER_AGENT = "neighborhood-mcp/1.0 (crime-data-aggregator)";
 
 interface NominatimResult {
   lat: string;

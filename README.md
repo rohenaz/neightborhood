@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src=".github/hero-banner.jpg" alt="neightborhood — Live crime data for AI agents" width="100%" />
+<img src=".github/hero-banner.jpg" alt="neighborhood — Live crime data for AI agents" width="100%" />
 
-# neightborhood
+# neighborhood
 
 **Live crime data for AI agents.** 6 sources. 5 tools. Any US zip code.
 
@@ -18,7 +18,7 @@ Optimized for Sterling Heights, MI (Macomb County) but works nationwide.
 
 ```bash
 # Install as a Claude Code plugin
-claude plugin install neightborhood
+claude plugin install neighborhood
 ```
 
 Then ask Claude:
@@ -34,7 +34,7 @@ Or run the slash command:
 ```
 
 <div align="center">
-<img src="promo/neightborhood-crime-map-demo.gif" alt="neightborhood crime map demo" width="720" />
+<img src="promo/neighborhood-crime-map-demo.gif" alt="neighborhood crime map demo" width="720" />
 </div>
 
 ## Data Sources
@@ -70,21 +70,21 @@ Or run the slash command:
 ### As a Claude Code Plugin
 
 ```bash
-claude plugin install neightborhood
+claude plugin install neighborhood
 ```
 
 ### Local Development
 
 ```bash
-git clone https://github.com/your-org/neightborhood
-cd neightborhood
+git clone https://github.com/your-org/neighborhood
+cd neighborhood
 bun install
 ```
 
 Test locally against Claude Code:
 
 ```bash
-claude --plugin-dir /path/to/neightborhood
+claude --plugin-dir /path/to/neighborhood
 ```
 
 Run the MCP server standalone:

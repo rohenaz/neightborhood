@@ -2,7 +2,7 @@
 
 **Title options:**
 - "I asked Claude Code to build a crime data MCP plugin. 10 parallel agents shipped it in 15 minutes."
-- "Show HN: neightborhood — a Claude Code plugin that aggregates live crime data from 6 sources"
+- "Show HN: neighborhood — a Claude Code plugin that aggregates live crime data from 6 sources"
 - "What multi-agent parallel development actually looks like: a Claude Code plugin from idea to publish in 15 minutes"
 
 ---
@@ -11,7 +11,7 @@
 
 A user in Sterling Heights, Michigan wanted live crime data for their neighborhood — something they could pipe into AI chatbots through MCP. They opened a Claude Code session and typed a few prompts.
 
-Fifteen minutes later, they ran `claude plugin install neightborhood`.
+Fifteen minutes later, they ran `claude plugin install neighborhood`.
 
 This is the story of how that happened, and what it means for how software gets built.
 
@@ -23,7 +23,7 @@ The user typed four things total:
 
 1. "I live in Sterling Heights, Michigan. I'm looking for live crime data sources in my area. I would like to make an MCP app that feeds this data in a live map view to apps using the MCP app, so it can deliver this to chatbots."
 2. "I'd like it to work accepting any zip code if you have generic sources, but it's most important that it covers my area well. If it supports many different live sources of data, that would be better."
-3. "I think we want to make this a Claude Code plugin. publish to new repo rohenaz/neightborhood"
+3. "I think we want to make this a Claude Code plugin. publish to new repo rohenaz/neighborhood"
 4. "Please remember: never do anything yourself. Always delegate tasks as often as possible and make sure adequate context and workload are supplied. Always."
 
 Then one more: "What can we be doing in parallel?"
@@ -57,7 +57,7 @@ Sequential development of the same scope would have taken hours. The wall-clock 
 
 ### What Got Built
 
-**neightborhood** is a Claude Code plugin that accepts any US zip code and queries 6 live crime data sources in parallel:
+**neighborhood** is a Claude Code plugin that accepts any US zip code and queries 6 live crime data sources in parallel:
 
 - **SpotCrime** — incident reports with lat/lng coordinates
 - **CrimeMapping.com (Axon)** — mapped incidents from police department systems
@@ -102,7 +102,7 @@ No required API keys. The plugin ships with a SpotCrime demo key and hits the ot
 ### Installation
 
 ```bash
-claude plugin install neightborhood
+claude plugin install neighborhood
 ```
 
 Then ask Claude anything:
@@ -134,6 +134,6 @@ This is what the current generation of tooling can do. The gap between "I have a
 
 ---
 
-**Repo:** https://github.com/rohenaz/neightborhood
+**Repo:** https://github.com/rohenaz/neighborhood
 **License:** MIT
-**Install:** `claude plugin install neightborhood`
+**Install:** `claude plugin install neighborhood`

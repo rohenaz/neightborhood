@@ -1,4 +1,4 @@
-# neightborhood Launch Strategy
+# neighborhood Launch Strategy
 
 ## What matters
 
@@ -86,7 +86,7 @@ The product hook wins on Reddit, HN, and general dev communities. The process ho
 - [ ] Screenshot the `get_map_html` output rendered in a browser
 - [ ] Write the HN Show HN post in a text file
 - [ ] Draft the X/Twitter thread (4-6 tweets)
-- [ ] Confirm `claude plugin install neightborhood` works end-to-end
+- [ ] Confirm `claude plugin install neighborhood` works end-to-end
 - [ ] Ensure README install instructions are clean and tested
 
 ### Launch Day (Tuesday or Wednesday, target 9-10am ET)
@@ -112,20 +112,20 @@ Post to each platform in sequence with time gaps. Each wave amplifies the previo
 > Ask Claude: "what crimes happened near 48312 in the last 30 days?"
 > Get back an interactive crime map.
 >
-> neightborhood — a Claude Code plugin aggregating 6 live sources:
+> neighborhood — a Claude Code plugin aggregating 6 live sources:
 > SpotCrime, CrimeMapping, ArcGIS, NSOPW, FBI Crime Data, local news
 >
 > [screenshot]
 
 ### Show HN
 
-> Show HN: neightborhood - MCP plugin aggregating 6 live crime data sources
+> Show HN: neighborhood - MCP plugin aggregating 6 live crime data sources
 >
 > I built an MCP server that lets Claude query crime data for any US zip code by federating 6 public sources. The server normalizes everything into GeoJSON and can render a self-contained Leaflet.js crime map as HTML (no external runtime, no API keys for 5 of 6 sources).
 >
 > Sources run via Promise.allSettled so one failure doesn't kill the others. FBI CDE returns annual NIBRS aggregates, synthesized into pseudo-incidents for historical context alongside real-time sources.
 >
-> Repo: https://github.com/rohenaz/neightborhood
+> Repo: https://github.com/rohenaz/neighborhood
 
 ### The Two Headlines
 
