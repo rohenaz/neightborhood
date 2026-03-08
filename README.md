@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/hero-banner.jpg" alt="neighborhood — Live crime data for AI agents" width="100%" />
+<img src=".github/hero-banner.jpg" alt="neighborhood — Live crime data for AI agents" />
 
 # neighborhood
 
