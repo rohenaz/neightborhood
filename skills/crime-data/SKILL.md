@@ -1,11 +1,11 @@
 ---
 name: crime-data
-description: Queries crime incidents, statistics, alerts, and maps for any U.S. zip code using the neightborhood MCP tools. Activates when users ask about crime data, crime map, neighborhood safety, crime report, incident data, crime statistics, sex offenders, local crime, or safety of an area.
+description: This skill should be used when a user asks about crime data, crime maps, neighborhood safety, crime reports, incident data, crime statistics, sex offenders, local crime, safety of an area, "is this zip code safe", "what crimes happened near me", crime trends, or safety assessments for any U.S. zip code. It queries live crime incidents, statistics, alerts, and interactive maps using the neightborhood MCP tools.
 ---
 
 # Crime Data
 
-This skill teaches how to use the neightborhood MCP server to query, interpret, and present crime data meaningfully.
+Use the neightborhood MCP server to query, interpret, and present crime data for U.S. zip codes.
 
 ## Available Tools
 
