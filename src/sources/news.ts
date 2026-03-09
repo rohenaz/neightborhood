@@ -243,18 +243,23 @@ export async function fetchNewsAsIncidents(
 ): Promise<RawIncident[]> {
   const alerts = await fetchNewsAlerts(zipCode, [], locationName);
 
-  return alerts.slice(0, 20).map(
-    (alert, idx): RawIncident => ({
+  // Spread news markers around the centroid so they don't stack on the center pin.
+  // ~0.003° ≈ 300m offset at mid-latitudes — visible at zoom 13 without leaving the area.
+  const JITTER = 0.003;
+  return alerts.slice(0, 20).map((alert, idx): RawIncident => {
+    const angle = (idx / Math.min(alerts.length, 20)) * 2 * Math.PI;
+    const r = JITTER * (0.5 + 0.5 * ((idx * 7 + 3) % 10) / 10); // vary radius
+    return {
       source: "news",
       id: `news-${zipCode}-${idx}`,
       type: "News Alert",
       description: alert.title,
       date: alert.publishedAt,
       address: `${zipCode} area`,
-      lat,
-      lng,
+      lat: lat + r * Math.sin(angle),
+      lng: lng + r * Math.cos(angle),
       url: alert.url,
       severity: "low",
-    })
-  );
+    };
+  });
 }

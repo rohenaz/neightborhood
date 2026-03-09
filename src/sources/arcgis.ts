@@ -47,29 +47,9 @@ function extractLocationTerms(displayName?: string): string[] {
   return terms.slice(0, 3); // city, county, state at most
 }
 
-// Reject services whose names clearly aren't crime-related
-const NON_CRIME_PATTERNS = [
-  /covid/i,
-  /coronavirus/i,
-  /pandemic/i,
-  /vaccine/i,
-  /health(?!\s*(?:and\s+)?safety)/i,
-  /census/i,
-  /election/i,
-  /weather/i,
-  /traffic(?!\s*stop)/i,
-  /zoning/i,
-  /parcel/i,
-  /permit/i,
-  /water(?:shed)?/i,
-  /sewer/i,
-  /school/i,
-  /park(?:ing|s)\b/i,
-  /boundary/i,
-  /tax/i,
-  /flood/i,
-  /demographic/i,
-];
+// Service name must contain at least one crime-related keyword to be relevant
+const CRIME_KEYWORDS =
+  /crime|police|incident|offense|arrest|violent|theft|burglary|robbery|assault|homicide|shooting|nibrs|ucr|public.?safety|law.?enforcement/i;
 
 // Search ArcGIS Online for public crime-related feature services near given bbox
 async function discoverCrimeServices(
@@ -119,8 +99,8 @@ async function discoverCrimeServices(
     .filter((r) => {
       if (!r.url) return false;
       const name = r.title ?? r.name ?? "";
-      // Filter out services that clearly aren't crime data
-      return !NON_CRIME_PATTERNS.some((pattern) => pattern.test(name));
+      // Service name must contain a crime-related keyword
+      return CRIME_KEYWORDS.test(name);
     })
     .map((r) => ({
       id: r.id ?? "unknown",
@@ -203,7 +183,32 @@ const ADDRESS_FIELDS = [
 
 function findField(fields: string[], candidates: string[]): string | undefined {
   const lower = new Set(fields.map((f) => f.toLowerCase()));
-  return candidates.find((c) => lower.has(c.toLowerCase()));
+  // Exact match first
+  const exact = candidates.find((c) => lower.has(c.toLowerCase()));
+  if (exact) return exact;
+  // ArcGIS truncates field names (e.g. "Incident_Date" → "Incident_D")
+  // Try finding a field whose name starts with a candidate prefix
+  for (const field of fields) {
+    const fl = field.toLowerCase();
+    for (const candidate of candidates) {
+      const cl = candidate.toLowerCase();
+      if (fl.startsWith(cl) || cl.startsWith(fl)) return field;
+    }
+  }
+  return undefined;
+}
+
+// Detect date fields by type metadata when name matching fails
+function findDateFieldByType(
+  fields: Array<{ name: string; type: string }> | undefined
+): string | undefined {
+  if (!fields) return undefined;
+  // Prefer the first esriFieldTypeDate field that looks incident-related
+  const dateFields = fields.filter((f) => f.type === "esriFieldTypeDate");
+  const preferred = dateFields.find((f) =>
+    /incident|occur|report|date/i.test(f.name)
+  );
+  return preferred?.name ?? dateFields[0]?.name;
 }
 
 async function queryService(
@@ -213,10 +218,13 @@ async function queryService(
   days: number,
   prefix: string
 ): Promise<RawIncident[]> {
-  // First try layer 0 of the service
-  const layerUrl = serviceUrl.includes("/FeatureServer")
-    ? serviceUrl
-    : `${serviceUrl.replace(/\/$/, "")}/FeatureServer/0`;
+  // Ensure we query a specific layer (layer 0) — querying the service root returns no features
+  let layerUrl = serviceUrl.replace(/\/$/, "");
+  if (!layerUrl.includes("/FeatureServer")) {
+    layerUrl += "/FeatureServer/0";
+  } else if (/\/FeatureServer\/?$/.test(layerUrl)) {
+    layerUrl = layerUrl.replace(/\/?$/, "/0");
+  }
 
   const geometry = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`;
 
@@ -276,7 +284,10 @@ async function queryService(
   }
 
   const typeField = findField(availableFields, TYPE_FIELDS) ?? "OFFENSE";
-  const dateField = findField(availableFields, DATE_FIELDS) ?? "DATE";
+  const dateField =
+    findField(availableFields, DATE_FIELDS) ??
+    findDateFieldByType(data.fields) ??
+    "DATE";
   const addressField = findField(availableFields, ADDRESS_FIELDS) ?? "ADDRESS";
 
   const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;

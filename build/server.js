@@ -38477,18 +38477,23 @@ async function fetchNewsAlerts(zipCode, keywords = [], locationName) {
 }
 async function fetchNewsAsIncidents(zipCode, lat, lng, locationName) {
   const alerts = await fetchNewsAlerts(zipCode, [], locationName);
-  return alerts.slice(0, 20).map((alert, idx) => ({
-    source: "news",
-    id: `news-${zipCode}-${idx}`,
-    type: "News Alert",
-    description: alert.title,
-    date: alert.publishedAt,
-    address: `${zipCode} area`,
-    lat,
-    lng,
-    url: alert.url,
-    severity: "low"
-  }));
+  const JITTER = 0.003;
+  return alerts.slice(0, 20).map((alert, idx) => {
+    const angle = idx / Math.min(alerts.length, 20) * 2 * Math.PI;
+    const r = JITTER * (0.5 + 0.5 * ((idx * 7 + 3) % 10) / 10);
+    return {
+      source: "news",
+      id: `news-${zipCode}-${idx}`,
+      type: "News Alert",
+      description: alert.title,
+      date: alert.publishedAt,
+      address: `${zipCode} area`,
+      lat: lat + r * Math.sin(angle),
+      lng: lng + r * Math.cos(angle),
+      url: alert.url,
+      severity: "low"
+    };
+  });
 }
 
 // src/tools/get-alerts.ts
@@ -38624,28 +38629,7 @@ function extractLocationTerms(displayName) {
   }
   return terms.slice(0, 3);
 }
-var NON_CRIME_PATTERNS = [
-  /covid/i,
-  /coronavirus/i,
-  /pandemic/i,
-  /vaccine/i,
-  /health(?!\s*(?:and\s+)?safety)/i,
-  /census/i,
-  /election/i,
-  /weather/i,
-  /traffic(?!\s*stop)/i,
-  /zoning/i,
-  /parcel/i,
-  /permit/i,
-  /water(?:shed)?/i,
-  /sewer/i,
-  /school/i,
-  /park(?:ing|s)\b/i,
-  /boundary/i,
-  /tax/i,
-  /flood/i,
-  /demographic/i
-];
+var CRIME_KEYWORDS = /crime|police|incident|offense|arrest|violent|theft|burglary|robbery|assault|homicide|shooting|nibrs|ucr|public.?safety|law.?enforcement/i;
 async function discoverCrimeServices(bbox, locationName) {
   const bboxStr = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`;
   const locationTerms = extractLocationTerms(locationName);
@@ -38676,7 +38660,7 @@ async function discoverCrimeServices(bbox, locationName) {
     if (!r.url)
       return false;
     const name = r.title ?? r.name ?? "";
-    return !NON_CRIME_PATTERNS.some((pattern) => pattern.test(name));
+    return CRIME_KEYWORDS.test(name);
   }).map((r) => ({
     id: r.id ?? "unknown",
     name: r.title ?? r.name ?? "Unknown",
@@ -38751,10 +38735,33 @@ var ADDRESS_FIELDS = [
 ];
 function findField(fields, candidates) {
   const lower = new Set(fields.map((f2) => f2.toLowerCase()));
-  return candidates.find((c) => lower.has(c.toLowerCase()));
+  const exact = candidates.find((c) => lower.has(c.toLowerCase()));
+  if (exact)
+    return exact;
+  for (const field of fields) {
+    const fl2 = field.toLowerCase();
+    for (const candidate of candidates) {
+      const cl2 = candidate.toLowerCase();
+      if (fl2.startsWith(cl2) || cl2.startsWith(fl2))
+        return field;
+    }
+  }
+  return;
+}
+function findDateFieldByType(fields) {
+  if (!fields)
+    return;
+  const dateFields = fields.filter((f2) => f2.type === "esriFieldTypeDate");
+  const preferred = dateFields.find((f2) => /incident|occur|report|date/i.test(f2.name));
+  return preferred?.name ?? dateFields[0]?.name;
 }
 async function queryService(serviceUrl, serviceName, bbox, days, prefix) {
-  const layerUrl = serviceUrl.includes("/FeatureServer") ? serviceUrl : `${serviceUrl.replace(/\/$/, "")}/FeatureServer/0`;
+  let layerUrl = serviceUrl.replace(/\/$/, "");
+  if (!layerUrl.includes("/FeatureServer")) {
+    layerUrl += "/FeatureServer/0";
+  } else if (/\/FeatureServer\/?$/.test(layerUrl)) {
+    layerUrl = layerUrl.replace(/\/?$/, "/0");
+  }
   const geometry = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`;
   const params = new URLSearchParams({
     where: "1=1",
@@ -38794,7 +38801,7 @@ async function queryService(serviceUrl, serviceName, bbox, days, prefix) {
     availableFields.push(...Object.keys(data.features[0].attributes));
   }
   const typeField = findField(availableFields, TYPE_FIELDS) ?? "OFFENSE";
-  const dateField = findField(availableFields, DATE_FIELDS) ?? "DATE";
+  const dateField = findField(availableFields, DATE_FIELDS) ?? findDateFieldByType(data.fields) ?? "DATE";
   const addressField = findField(availableFields, ADDRESS_FIELDS) ?? "ADDRESS";
   const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
   const results = [];
