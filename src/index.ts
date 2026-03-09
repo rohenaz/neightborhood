@@ -307,12 +307,16 @@ function registerResources(server: McpServer) {
                   // All JS/CSS is inlined by vite-plugin-singlefile; tile
                   // and style requests need network access.
                   resourceDomains: [
+                    "https://basemaps.cartocdn.com",
                     "https://*.basemaps.cartocdn.com",
+                    "https://tiles.basemaps.cartocdn.com",
                     "https://api.mapbox.com",
                     "https://*.tiles.mapbox.com",
                   ],
                   connectDomains: [
+                    "https://basemaps.cartocdn.com",
                     "https://*.basemaps.cartocdn.com",
+                    "https://tiles.basemaps.cartocdn.com",
                     "https://api.mapbox.com",
                     "https://*.tiles.mapbox.com",
                   ],

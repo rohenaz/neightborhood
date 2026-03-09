@@ -574,7 +574,7 @@ function renderMap(data: MapData): void {
     style: getStyleUrl(data.mapboxToken),
     center: [lng, lat],
     zoom: 13,
-    attributionControl: { compact: true },
+    attributionControl: false,
   });
   currentMap = map;
 

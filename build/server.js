@@ -40300,12 +40300,16 @@ function registerResources(server) {
             ui: {
               csp: {
                 resourceDomains: [
+                  "https://basemaps.cartocdn.com",
                   "https://*.basemaps.cartocdn.com",
+                  "https://tiles.basemaps.cartocdn.com",
                   "https://api.mapbox.com",
                   "https://*.tiles.mapbox.com"
                 ],
                 connectDomains: [
+                  "https://basemaps.cartocdn.com",
                   "https://*.basemaps.cartocdn.com",
+                  "https://tiles.basemaps.cartocdn.com",
                   "https://api.mapbox.com",
                   "https://*.tiles.mapbox.com"
                 ]
