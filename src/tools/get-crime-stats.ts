@@ -4,6 +4,8 @@ import { classifySeverity } from "../normalize.ts";
 import { fetchArcGIS } from "../sources/arcgis.ts";
 import { fetchFBIStats } from "../sources/fbi.ts";
 import { fetchNewsAsIncidents } from "../sources/news.ts";
+import { fetchSocrata } from "../sources/socrata.ts";
+import { fetchSpotCrime } from "../sources/spotcrime.ts";
 import type {
   CrimeStats,
   IncidentSeverity,
@@ -27,10 +29,19 @@ export async function getCrimeStats(
   const allIncidents: RawIncident[] = [];
 
   // Gather incidents from all working sources
+  const radius = 10;
   const fetchers = [
     {
       source: "arcgis",
-      fetch: () => fetchArcGIS(lat, lng, 10, days, coords.displayName),
+      fetch: () => fetchArcGIS(lat, lng, radius, days, coords.displayName),
+    },
+    {
+      source: "socrata",
+      fetch: () => fetchSocrata(lat, lng, radius, days),
+    },
+    {
+      source: "spotcrime",
+      fetch: () => fetchSpotCrime(lat, lng, radius, days),
     },
     {
       source: "news",
@@ -144,7 +155,7 @@ export async function getCrimeStats(
   // Top types sorted by count
   const topTypes = Object.entries(byType)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
+    .slice(0, 25)
     .map(([type, count]) => ({
       type,
       count,

@@ -43,11 +43,12 @@
       --summary-card: #1c1c1f;
     }
 
+    html { height: 600px; }
     body {
       font-family: var(--font);
       background: var(--background);
       color: var(--card-fg);
-      height: 100vh;
+      height: 600px;
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
@@ -900,8 +901,8 @@
       </div>
 
       <div class="dt-tabs" role="tablist" id="dt-tabs">
-        <button class="dt-tab active" data-tab="stats" role="tab" aria-selected="true"  aria-controls="dt-stats-panel">Statistics</button>
-        <button class="dt-tab"        data-tab="news"  role="tab" aria-selected="false" aria-controls="dt-news-panel">News</button>
+        <button class="dt-tab"        data-tab="stats" role="tab" aria-selected="false" aria-controls="dt-stats-panel">Statistics</button>
+        <button class="dt-tab active" data-tab="news"  role="tab" aria-selected="true"  aria-controls="dt-news-panel">News</button>
       </div>
 
       <div class="toolbar">
@@ -917,14 +918,14 @@
         <span class="toolbar-count" id="dt-toolbar-count"></span>
       </div>
 
-      <div class="table-container" id="dt-stats-panel" role="tabpanel" aria-labelledby="stats-tab">
+      <div class="table-container" id="dt-stats-panel" role="tabpanel" aria-labelledby="stats-tab" style="display:none">
         <table aria-label="Crime statistics">
           <thead id="dt-stats-head"></thead>
           <tbody id="dt-stats-body"></tbody>
         </table>
       </div>
 
-      <div class="table-container" id="dt-news-panel" role="tabpanel" aria-labelledby="news-tab" style="display:none">
+      <div class="table-container" id="dt-news-panel" role="tabpanel" aria-labelledby="news-tab">
         <table aria-label="News articles">
           <thead id="dt-news-head"></thead>
           <tbody id="dt-news-body"></tbody>

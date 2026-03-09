@@ -212,9 +212,9 @@ let currentDays = 30;
 let currentZip = "";
 
 // ── Data panel state ──────────────────────────────────────────────────────────
-let dataActiveTab: "stats" | "news" = "stats";
+let dataActiveTab: "stats" | "news" = "news";
 let dataFilterText = "";
-let dataSortCol = "count";
+let dataSortCol = "date";
 let dataSortDir: "asc" | "desc" = "desc";
 let dataCurrentPage = 0;
 const DATA_PAGE_SIZE = 25;

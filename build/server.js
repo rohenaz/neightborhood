@@ -39301,147 +39301,6 @@ async function fetchFBIStats(lat, lng, radiusMiles) {
   });
 }
 
-// src/tools/get-crime-stats.ts
-async function getCrimeStats(input) {
-  const { zipCode, days = 30 } = input;
-  const coords = await zipToCoordinates(zipCode);
-  const { lat, lng } = coords;
-  const sourceErrors = [];
-  const allIncidents = [];
-  const fetchers = [
-    {
-      source: "arcgis",
-      fetch: () => fetchArcGIS(lat, lng, 10, days, coords.displayName)
-    },
-    {
-      source: "news",
-      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName)
-    }
-  ];
-  const incidentResults = await Promise.allSettled(fetchers.map(({ fetch: fetch2 }) => fetch2()));
-  for (let i = 0;i < incidentResults.length; i++) {
-    const result = incidentResults[i];
-    const fetcher = fetchers[i];
-    if (!result || !fetcher)
-      continue;
-    if (result.status === "fulfilled") {
-      const cutoff = new Date;
-      cutoff.setDate(cutoff.getDate() - days);
-      allIncidents.push(...result.value.filter((inc) => {
-        try {
-          return new Date(inc.date) >= cutoff;
-        } catch {
-          return true;
-        }
-      }));
-    } else {
-      const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
-      sourceErrors.push({
-        source: fetcher.source,
-        error: msg,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-  if (allIncidents.length > 0) {
-    try {
-      cacheIncidents(zipCode, allIncidents);
-    } catch (e) {
-      console.error("[cache] write failed:", e);
-    }
-  }
-  if (allIncidents.length === 0) {
-    try {
-      const cached2 = getCachedIncidents({ zipCode, days: Math.max(days, 90) });
-      if (cached2.length > 0) {
-        allIncidents.push(...cached2);
-        sourceErrors.push({
-          source: "cache",
-          error: `Live sources returned no data. Showing ${cached2.length} cached results.`,
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (e) {
-      console.error("[cache] read failed:", e);
-    }
-  }
-  let fbiStats = [];
-  try {
-    fbiStats = await fetchFBIStats(lat, lng, 10);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[fbi] stats fetch failed: ${msg}`);
-    sourceErrors.push({
-      source: "fbi",
-      error: msg,
-      timestamp: new Date().toISOString()
-    });
-  }
-  const byType = {};
-  const bySource = {};
-  const bySeverity = {
-    high: 0,
-    medium: 0,
-    low: 0
-  };
-  for (const incident of allIncidents) {
-    byType[incident.type] = (byType[incident.type] ?? 0) + 1;
-    bySource[incident.source] = (bySource[incident.source] ?? 0) + 1;
-    const sev = incident.severity ?? classifySeverity(incident.type);
-    bySeverity[sev] = (bySeverity[sev] ?? 0) + 1;
-  }
-  for (const agency of fbiStats) {
-    bySource[`fbi-${agency.ori}`] = agency.offenses.reduce((sum, o) => sum + o.count, 0);
-    for (const offense of agency.offenses) {
-      byType[offense.type] = (byType[offense.type] ?? 0) + offense.count;
-    }
-  }
-  const totalIncidents = allIncidents.length;
-  const topTypes = Object.entries(byType).sort(([, a2], [, b2]) => b2 - a2).slice(0, 10).map(([type, count]) => ({
-    type,
-    count,
-    percentage: totalIncidents > 0 ? Math.round(count / totalIncidents * 100 * 10) / 10 : 0
-  }));
-  const trend = computeTrend(allIncidents, days);
-  return {
-    zipCode,
-    days,
-    totalIncidents,
-    byType,
-    bySource,
-    bySeverity,
-    topTypes,
-    trend,
-    generatedAt: new Date().toISOString(),
-    sourceErrors
-  };
-}
-function computeTrend(incidents, days) {
-  if (incidents.length < 4)
-    return "unknown";
-  const now = Date.now();
-  const halfMs = days / 2 * 24 * 60 * 60 * 1000;
-  const midpoint = now - halfMs;
-  let firstHalf = 0;
-  let secondHalf = 0;
-  for (const incident of incidents) {
-    const ms = new Date(incident.date).getTime();
-    if (ms < midpoint) {
-      firstHalf++;
-    } else {
-      secondHalf++;
-    }
-  }
-  if (firstHalf === 0)
-    return "unknown";
-  const ratio = secondHalf / firstHalf;
-  if (ratio > 1.2)
-    return "increasing";
-  if (ratio < 0.8)
-    return "decreasing";
-  return "stable";
-}
-
 // src/sources/socrata.ts
 var KNOWN_DATASETS = [
   {
@@ -39971,6 +39830,156 @@ async function fetchSpotCrime(lat, lng, radiusMiles, days) {
     });
   }
   return results;
+}
+
+// src/tools/get-crime-stats.ts
+async function getCrimeStats(input) {
+  const { zipCode, days = 30 } = input;
+  const coords = await zipToCoordinates(zipCode);
+  const { lat, lng } = coords;
+  const sourceErrors = [];
+  const allIncidents = [];
+  const radius = 10;
+  const fetchers = [
+    {
+      source: "arcgis",
+      fetch: () => fetchArcGIS(lat, lng, radius, days, coords.displayName)
+    },
+    {
+      source: "socrata",
+      fetch: () => fetchSocrata(lat, lng, radius, days)
+    },
+    {
+      source: "spotcrime",
+      fetch: () => fetchSpotCrime(lat, lng, radius, days)
+    },
+    {
+      source: "news",
+      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName)
+    }
+  ];
+  const incidentResults = await Promise.allSettled(fetchers.map(({ fetch: fetch2 }) => fetch2()));
+  for (let i = 0;i < incidentResults.length; i++) {
+    const result = incidentResults[i];
+    const fetcher = fetchers[i];
+    if (!result || !fetcher)
+      continue;
+    if (result.status === "fulfilled") {
+      const cutoff = new Date;
+      cutoff.setDate(cutoff.getDate() - days);
+      allIncidents.push(...result.value.filter((inc) => {
+        try {
+          return new Date(inc.date) >= cutoff;
+        } catch {
+          return true;
+        }
+      }));
+    } else {
+      const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      sourceErrors.push({
+        source: fetcher.source,
+        error: msg,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+  if (allIncidents.length > 0) {
+    try {
+      cacheIncidents(zipCode, allIncidents);
+    } catch (e) {
+      console.error("[cache] write failed:", e);
+    }
+  }
+  if (allIncidents.length === 0) {
+    try {
+      const cached2 = getCachedIncidents({ zipCode, days: Math.max(days, 90) });
+      if (cached2.length > 0) {
+        allIncidents.push(...cached2);
+        sourceErrors.push({
+          source: "cache",
+          error: `Live sources returned no data. Showing ${cached2.length} cached results.`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.error("[cache] read failed:", e);
+    }
+  }
+  let fbiStats = [];
+  try {
+    fbiStats = await fetchFBIStats(lat, lng, 10);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[fbi] stats fetch failed: ${msg}`);
+    sourceErrors.push({
+      source: "fbi",
+      error: msg,
+      timestamp: new Date().toISOString()
+    });
+  }
+  const byType = {};
+  const bySource = {};
+  const bySeverity = {
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+  for (const incident of allIncidents) {
+    byType[incident.type] = (byType[incident.type] ?? 0) + 1;
+    bySource[incident.source] = (bySource[incident.source] ?? 0) + 1;
+    const sev = incident.severity ?? classifySeverity(incident.type);
+    bySeverity[sev] = (bySeverity[sev] ?? 0) + 1;
+  }
+  for (const agency of fbiStats) {
+    bySource[`fbi-${agency.ori}`] = agency.offenses.reduce((sum, o) => sum + o.count, 0);
+    for (const offense of agency.offenses) {
+      byType[offense.type] = (byType[offense.type] ?? 0) + offense.count;
+    }
+  }
+  const totalIncidents = allIncidents.length;
+  const topTypes = Object.entries(byType).sort(([, a2], [, b2]) => b2 - a2).slice(0, 25).map(([type, count]) => ({
+    type,
+    count,
+    percentage: totalIncidents > 0 ? Math.round(count / totalIncidents * 100 * 10) / 10 : 0
+  }));
+  const trend = computeTrend(allIncidents, days);
+  return {
+    zipCode,
+    days,
+    totalIncidents,
+    byType,
+    bySource,
+    bySeverity,
+    topTypes,
+    trend,
+    generatedAt: new Date().toISOString(),
+    sourceErrors
+  };
+}
+function computeTrend(incidents, days) {
+  if (incidents.length < 4)
+    return "unknown";
+  const now = Date.now();
+  const halfMs = days / 2 * 24 * 60 * 60 * 1000;
+  const midpoint = now - halfMs;
+  let firstHalf = 0;
+  let secondHalf = 0;
+  for (const incident of incidents) {
+    const ms = new Date(incident.date).getTime();
+    if (ms < midpoint) {
+      firstHalf++;
+    } else {
+      secondHalf++;
+    }
+  }
+  if (firstHalf === 0)
+    return "unknown";
+  const ratio = secondHalf / firstHalf;
+  if (ratio > 1.2)
+    return "increasing";
+  if (ratio < 0.8)
+    return "decreasing";
+  return "stable";
 }
 
 // src/tools/get-incidents.ts
