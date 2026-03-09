@@ -4,13 +4,13 @@
 
 # neighborhood
 
-**Live crime data for AI agents.** 6 sources. 5 tools. Any US zip code.
+**Live crime data for AI agents.** 3 sources. 5 tools. Any US zip code.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
 
-A Claude Code plugin that aggregates live crime data from six public sources and exposes it through MCP tools. Accepts any US zip code and returns unified GeoJSON, statistics, interactive maps, and news alerts.
+A Claude Code plugin that aggregates live crime data from public sources and exposes it through MCP tools. Accepts any US zip code and returns unified GeoJSON, statistics, interactive maps, and news alerts.
 
 Optimized for Austin, TX (Travis County) but works nationwide.
 
@@ -37,12 +37,9 @@ Or run the slash command:
 
 | Source | Data Type | Updates | Auth |
 |---|---|---|---|
-| SpotCrime | Incident reports with lat/lng | Daily | Optional (demo key included) |
-| CrimeMapping.com (Axon) | Mapped incidents from police departments | Live | None |
-| ArcGIS Feature Services | Travis County GIS + spatial data | Live | None |
-| NSOPW | National Sex Offender Public Registry | Live | None |
+| ArcGIS Feature Services | Travis County GIS + spatial incidents | Live | None |
 | FBI Crime Data Explorer | Historical NIBRS aggregate statistics | Annual | Free API key |
-| News RSS | Google News + Patch.com local crime news | Live | Optional |
+| News RSS | Google News + Patch.com local crime news | Live | None |
 
 ## MCP Tools
 
@@ -51,7 +48,7 @@ Or run the slash command:
 | `get_incidents` | GeoJSON FeatureCollection of crime incidents by zip code |
 | `get_crime_stats` | Aggregated counts by type and severity, with trend analysis |
 | `list_sources` | Check which data sources are online or offline |
-| `get_map_html` | Self-contained Leaflet.js interactive crime map (no dependencies) |
+| `get_map_html` | Interactive crime map rendered inline via MCP Apps |
 | `get_alerts` | Recent crime news pulled from RSS feeds |
 
 ## Plugin Components
@@ -72,7 +69,7 @@ claude plugin install neighborhood
 ### Local Development
 
 ```bash
-git clone https://github.com/your-org/neighborhood
+git clone https://github.com/rohenaz/neighborhood
 cd neighborhood
 bun install
 ```
@@ -83,28 +80,46 @@ Test locally against Claude Code:
 claude --plugin-dir /path/to/neighborhood
 ```
 
-Run the MCP server standalone:
+### Run the MCP Server
+
+**stdio mode** (Claude Code CLI):
 
 ```bash
+bun run start
+# or directly:
 bun run src/index.ts
 ```
 
+**HTTP mode** (Claude Desktop):
+
+```bash
+bun run serve
+# Starts HTTP server on port 3001
+```
+
+### Claude Desktop
+
+Claude Desktop requires HTTP transport. Expose the local server with a Cloudflare tunnel:
+
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+
+Then add a custom connector in Claude Desktop pointing to the tunnel URL. The server uses Hono + `WebStandardStreamableHTTPServerTransport` and declares the `io.modelcontextprotocol/ui` capability for inline map rendering.
+
 ## Configuration
 
-API keys are optional. Sources with missing keys are skipped gracefully — the plugin works with whatever you have.
+`FBI_API_KEY` is optional. Without it, the FBI source is skipped and the other two sources still work.
 
 | Variable | Purpose | Get a key |
 |---|---|---|
 | `FBI_API_KEY` | Historical NIBRS crime stats by agency | [api.data.gov/signup](https://api.data.gov/signup) (free) |
-| `SPOTCRIME_API_KEY` | Real-time incident reports | [spotcrime.com/police/api](https://spotcrime.com/police/api) |
-| `NEWSAPI_KEY` | Additional news coverage beyond RSS feeds | [newsapi.org/register](https://newsapi.org/register) |
 
 Set variables in `~/.config/neighborhood/.env` or export in your shell:
 
 ```bash
 # ~/.config/neighborhood/.env
 FBI_API_KEY=your_key_here
-SPOTCRIME_API_KEY=your_key_here
 ```
 
 ## Usage Examples
@@ -131,12 +146,16 @@ What types of crimes are trending in this area?
 Use get_incidents for zip 78701 and then get_map_html to show me a map
 ```
 
+Maps from `get_map_html` render inline — no browser required.
+
 ## Tech Stack
 
 - TypeScript + Bun
+- Hono for HTTP transport
 - `@modelcontextprotocol/sdk` for MCP server implementation
+- `@modelcontextprotocol/ext-apps` for inline map rendering (MCP Apps)
 - Zod for input validation and schema enforcement
-- Leaflet.js for self-contained map output (no external runtime dependency)
+- Leaflet.js for interactive map output
 
 ## License
 
