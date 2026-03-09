@@ -558,12 +558,16 @@ function renderMap(data: MapData): void {
 
       const rows = sources
         .map((s) => {
-          // Green: online, Red: has key but fetch failed, Gray: no key
+          const isCached = !s.isOnline && s.error && /serving \d+ cached/.test(s.error);
+
+          // Green: online, Amber: cached, Red: failed, Gray: no key
           let dotClass: string;
           if (!s.hasApiKey) {
             dotClass = "sources-dot-off";
           } else if (s.isOnline) {
             dotClass = "sources-dot-on";
+          } else if (isCached) {
+            dotClass = "sources-dot-cached";
           } else {
             dotClass = "sources-dot-error";
           }
@@ -575,13 +579,14 @@ function renderMap(data: MapData): void {
             if (s.signupUrl) {
               statusLine += ` <a href="${esc(s.signupUrl)}" target="_blank" rel="noopener noreferrer" class="sources-signup">get key</a>`;
             }
-          } else if (!s.requiresApiKey && !s.isOnline && s.error) {
-            // No key needed but fetch failed — show error
-            statusLine = `<span class="sources-error-msg">${esc(s.error)}</span>`;
           } else if (s.isOnline) {
             statusLine = '<span class="sources-status-ok">online</span>';
+          } else if (isCached) {
+            statusLine = '<span class="sources-status-cached">cached</span>';
           } else if (s.error) {
             statusLine = `<span class="sources-error-msg">${esc(s.error)}</span>`;
+          } else if (!s.requiresApiKey) {
+            statusLine = '<span class="sources-env sources-no-key">no key needed</span>';
           } else {
             statusLine = '<span class="sources-env sources-no-key">no key needed</span>';
           }

@@ -1,6 +1,6 @@
 {
   "name": "neighborhood",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "Live crime data aggregation MCP plugin — queries ArcGIS, Socrata, and SpotCrime by zip code. Returns unified GeoJSON with interactive MapLibre GL map, clustering, scanner feeds, dark/light theme support, and integrated data panel with tabs for FBI stats and news via MCP Apps.",
   "author": {
     "name": "rohenaz",

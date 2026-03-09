@@ -4,15 +4,13 @@
 
 # neighborhood
 
-**Live crime data for AI agents.** 3 sources. 5 tools. Any US zip code.
+**Live crime data for AI agents.** 4 sources. 6 tools. Any US location.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
 
-A Claude Code plugin that aggregates live crime data from public sources and exposes it through MCP tools. Accepts any US zip code and returns unified GeoJSON, statistics, interactive maps, and news alerts.
-
-Optimized for Austin, TX (Travis County) but works nationwide.
+A Claude Code plugin that aggregates live crime data from public sources and exposes it through MCP tools. Accepts US zip codes, state names, state abbreviations, and city names. Returns unified GeoJSON, statistics, interactive maps with comparison views, and news alerts.
 
 ## Quick Start
 
@@ -24,7 +22,9 @@ claude plugin install neighborhood
 Then ask Claude:
 
 ```
-What's the crime like near 78701?
+What's the crime like in Austin, TX?
+How safe is Alabama?
+Show me crime near 78701
 ```
 
 Or run the slash command:
@@ -33,27 +33,54 @@ Or run the slash command:
 /crime-report 78701
 ```
 
+## Location Input
+
+All tools accept flexible location input — not just zip codes:
+
+| Input | Example | Resolution |
+|---|---|---|
+| ZIP code | `78701` | Direct lookup |
+| State abbreviation | `TX` | Capital city area |
+| State name | `Texas` | Capital city area |
+| City name | `Austin, TX` | Geocoded via Nominatim |
+
+For state-level queries, data is shown for the capital city area. Users can then change the ZIP in the UI to drill into other areas.
+
 ## Data Sources
 
 | Source | Data Type | Updates | Auth |
 |---|---|---|---|
-| ArcGIS Feature Services | Travis County GIS + spatial incidents | Live | None |
+| ArcGIS Feature Services | Spatial crime incidents (nationwide) | Live | None |
+| Socrata Open Data | City/county open data portals | Live | None |
+| SpotCrime | Aggregated crime incidents | Live | None |
 | FBI Crime Data Explorer | Historical NIBRS aggregate statistics | Annual | Free API key |
 | News RSS | Google News + Patch.com local crime news | Live | None |
 
 ## MCP Tools
 
-| Tool | Description |
-|---|---|
-| `get_incidents` | GeoJSON FeatureCollection of crime incidents by zip code |
-| `get_crime_stats` | Aggregated counts by type and severity, with trend analysis |
-| `list_sources` | Check which data sources are online or offline |
-| `get_map_html` | Interactive crime map rendered inline via MCP Apps |
-| `get_alerts` | Recent crime news pulled from RSS feeds |
+| Tool | Visibility | Description |
+|---|---|---|
+| `get_incidents` | Model + App | GeoJSON FeatureCollection of crime incidents |
+| `get_crime_stats` | Model + App | Aggregated counts by type, severity, and trend |
+| `get_alerts` | Model + App | Recent crime news from RSS feeds |
+| `get_map_html` | Model + App | Interactive crime map rendered inline via MCP Apps |
+| `get_crime_data` | App only | Fetches stats + alerts for the data panel |
+| `compare_zips` | App only | Compares crime stats between two ZIP codes |
+| `list_sources` | Model + App | Check which data sources are online/offline |
+
+## Interactive Map
+
+The `get_map_html` tool renders an inline interactive map powered by MapLibre GL JS with three tabs:
+
+- **Map** — Clustered crime markers on dark/light themed tiles (Carto by default, Mapbox if `MAPBOX_TOKEN` is set)
+- **Data** — Crime statistics, severity breakdown, top crime types, trend analysis, and news alerts
+- **Compare** — Side-by-side delta cards comparing crime stats between two ZIP codes
+
+Maps render inline in Claude — no browser required.
 
 ## Plugin Components
 
-- **MCP server** — TypeScript, runs via Bun, exposes the five tools above
+- **MCP server** — TypeScript, runs via Bun, exposes all tools above
 - **`skills/crime-data/`** — guides Claude on how and when to use each tool
 - **`agents/crime-analyst`** — autonomous agent for safety analysis workflows
 - **`commands/crime-report`** — `/crime-report <zip>` slash command
@@ -74,7 +101,13 @@ cd neighborhood
 bun install
 ```
 
-Test locally against Claude Code:
+Test locally:
+
+```bash
+claude mcp add neighborhood -- bun run src/index.ts --stdio
+```
+
+Or use the plugin directory:
 
 ```bash
 claude --plugin-dir /path/to/neighborhood
@@ -82,15 +115,15 @@ claude --plugin-dir /path/to/neighborhood
 
 ### Run the MCP Server
 
-**stdio mode** (Claude Code CLI):
+**stdio mode** (Claude Code / Claude Desktop):
 
 ```bash
-bun run start
+./start.sh
 # or directly:
-bun run src/index.ts
+bun run src/index.ts --stdio
 ```
 
-**HTTP mode** (Claude Desktop):
+**HTTP mode** (optional):
 
 ```bash
 bun run serve
@@ -99,21 +132,28 @@ bun run serve
 
 ### Claude Desktop
 
-Claude Desktop requires HTTP transport. Expose the local server with a Cloudflare tunnel:
+Add to `claude_desktop_config.json`:
 
-```bash
-cloudflared tunnel --url http://localhost:3001
+```json
+{
+  "mcpServers": {
+    "neighborhood": {
+      "command": "/path/to/neighborhood/start.sh"
+    }
+  }
+}
 ```
 
-Then add a custom connector in Claude Desktop pointing to the tunnel URL. The server uses Hono + `WebStandardStreamableHTTPServerTransport` and declares the `io.modelcontextprotocol/ui` capability for inline map rendering.
+The server declares the `io.modelcontextprotocol/ui` capability for inline map rendering.
 
 ## Configuration
 
-`FBI_API_KEY` is optional. Without it, the FBI source is skipped and the other two sources still work.
+`FBI_API_KEY` is optional. Without it, the FBI source is skipped and the other sources still work.
 
 | Variable | Purpose | Get a key |
 |---|---|---|
 | `FBI_API_KEY` | Historical NIBRS crime stats by agency | [api.data.gov/signup](https://api.data.gov/signup) (free) |
+| `MAPBOX_TOKEN` | Mapbox tile style (optional, Carto tiles used by default) | [mapbox.com](https://www.mapbox.com/) |
 
 Set variables in `~/.config/neighborhood/.env` or export in your shell:
 
@@ -122,16 +162,20 @@ Set variables in `~/.config/neighborhood/.env` or export in your shell:
 FBI_API_KEY=your_key_here
 ```
 
+## Caching
+
+Incidents are cached in SQLite at `~/.config/neighborhood/cache.sqlite` to persist data across restarts and reduce API load during source outages.
+
 ## Usage Examples
 
 **Natural language queries:**
 
 ```
-What's the crime like near 78701?
-Generate a crime report for Austin, TX
+What's the crime like in Austin, TX?
+How safe is Alabama?
+Show me a map of recent incidents in 78701
 Compare safety between 78701 and 78704
-Show me a map of recent incidents in zip 78701
-What types of crimes are trending in this area?
+What types of crimes are trending near Denver?
 ```
 
 **Slash command:**
@@ -140,22 +184,23 @@ What types of crimes are trending in this area?
 /crime-report 78701
 ```
 
-**Direct tool invocation** (in Claude conversations):
+**Direct tool invocation:**
 
 ```
 Use get_incidents for zip 78701 and then get_map_html to show me a map
 ```
 
-Maps from `get_map_html` render inline — no browser required.
-
 ## Tech Stack
 
 - TypeScript + Bun
-- Hono for HTTP transport
-- `@modelcontextprotocol/sdk` for MCP server implementation
-- `@modelcontextprotocol/ext-apps` for inline map rendering (MCP Apps)
-- Zod for input validation and schema enforcement
-- Leaflet.js for interactive map output
+- Hono (HTTP transport)
+- MapLibre GL JS (interactive maps)
+- `@modelcontextprotocol/sdk` (MCP server)
+- `@modelcontextprotocol/ext-apps` (inline rendering via MCP Apps)
+- Vite + `vite-plugin-singlefile` (view bundling)
+- Zod (input validation)
+- SQLite (incident cache)
+- Nominatim (city name geocoding)
 
 ## License
 
