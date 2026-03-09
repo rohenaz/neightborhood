@@ -5,10 +5,11 @@ import type { AlertsResult, SourceError } from "../types.ts";
 export interface GetAlertsInput {
   zipCode: string;
   keywords?: string[];
+  limit?: number;
 }
 
 export async function getAlerts(input: GetAlertsInput): Promise<AlertsResult> {
-  const { zipCode, keywords = [] } = input;
+  const { zipCode, keywords = [], limit = 20 } = input;
   const sourceErrors: SourceError[] = [];
 
   // Geocode to get the display name for location-aware news queries
@@ -34,10 +35,14 @@ export async function getAlerts(input: GetAlertsInput): Promise<AlertsResult> {
     });
   }
 
+  const totalCount = alerts.length;
+  const trimmed = alerts.slice(0, limit).map(({ description, ...rest }) => rest);
+
   return {
     zipCode,
-    alerts,
-    totalCount: alerts.length,
+    alerts: trimmed,
+    totalCount,
+    showing: trimmed.length,
     generatedAt: new Date().toISOString(),
     sourceErrors,
   };

@@ -166,6 +166,14 @@ function registerTools(server: McpServer) {
           .describe(
             "Keywords to filter crime news (default: broad crime-related terms)"
           ),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(50)
+          .optional()
+          .default(20)
+          .describe("Max alerts to return (default: 20)"),
       },
     },
     async (args) => {

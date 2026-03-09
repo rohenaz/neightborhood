@@ -38695,7 +38695,7 @@ async function fetchNewsAsIncidents(zipCode, lat, lng, locationName) {
 
 // src/tools/get-alerts.ts
 async function getAlerts(input) {
-  const { zipCode, keywords = [] } = input;
+  const { zipCode, keywords = [], limit = 20 } = input;
   const sourceErrors = [];
   let locationName;
   try {
@@ -38714,10 +38714,13 @@ async function getAlerts(input) {
       timestamp: new Date().toISOString()
     });
   }
+  const totalCount = alerts.length;
+  const trimmed = alerts.slice(0, limit).map(({ description, ...rest }) => rest);
   return {
     zipCode,
-    alerts,
-    totalCount: alerts.length,
+    alerts: trimmed,
+    totalCount,
+    showing: trimmed.length,
     generatedAt: new Date().toISOString(),
     sourceErrors
   };
@@ -40147,7 +40150,8 @@ function registerTools(server) {
     description: "Fetch recent crime news and alerts for a ZIP code from RSS feeds (Google News, Patch.com). Returns article titles, links, and snippets.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
-      keywords: exports_external.array(exports_external.string()).optional().describe("Keywords to filter crime news (default: broad crime-related terms)")
+      keywords: exports_external.array(exports_external.string()).optional().describe("Keywords to filter crime news (default: broad crime-related terms)"),
+      limit: exports_external.number().int().positive().max(50).optional().default(20).describe("Max alerts to return (default: 20)")
     }
   }, async (args) => {
     const result = await getAlerts(args);
