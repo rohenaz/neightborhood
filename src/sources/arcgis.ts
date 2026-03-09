@@ -31,6 +31,22 @@ interface ArcGISResponse {
   error?: { code: number; message: string };
 }
 
+function extractLocationTerms(displayName?: string): string[] {
+  if (!displayName) return [];
+  // "78701, Austin, Travis County, Texas, United States"
+  const parts = displayName.split(",").map((s) => s.trim());
+  const terms: string[] = [];
+  for (const part of parts) {
+    // Skip zip codes, "United States", and very short parts
+    if (/^\d+$/.test(part)) continue;
+    if (part === "United States") continue;
+    if (part.length < 3) continue;
+    // Quote multi-word terms
+    terms.push(part.includes(" ") ? `"${part}"` : part);
+  }
+  return terms.slice(0, 3); // city, county, state at most
+}
+
 // Reject services whose names clearly aren't crime-related
 const NON_CRIME_PATTERNS = [
   /covid/i,
@@ -56,15 +72,25 @@ const NON_CRIME_PATTERNS = [
 ];
 
 // Search ArcGIS Online for public crime-related feature services near given bbox
-async function discoverCrimeServices(bbox: {
-  minLat: number;
-  maxLat: number;
-  minLng: number;
-  maxLng: number;
-}): Promise<ArcGISSearchResult[]> {
+async function discoverCrimeServices(
+  bbox: {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  },
+  locationName?: string
+): Promise<ArcGISSearchResult[]> {
   const bboxStr = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`;
+
+  // Extract city/county/state from location name for targeted search
+  // e.g. "78701, Austin, Travis County, Texas, United States" → "Austin" + "Travis County"
+  const locationTerms = extractLocationTerms(locationName);
+  const locationQuery =
+    locationTerms.length > 0 ? ` (${locationTerms.join(" OR ")})` : "";
+
   const params = new URLSearchParams({
-    q: '(crime OR "police incidents" OR "criminal offenses" OR "crime reports" OR "police reports") type:"Feature Service" access:public',
+    q: `(crime OR "police incidents" OR "criminal offenses" OR "police calls") type:"Feature Service" access:public${locationQuery}`,
     bbox: bboxStr,
     sortField: "numviews",
     sortOrder: "desc",
@@ -294,13 +320,14 @@ export async function fetchArcGIS(
   lat: number,
   lng: number,
   radiusMiles: number,
-  days: number
+  days: number,
+  locationName?: string
 ): Promise<RawIncident[]> {
   const bbox = buildBoundingBox(lat, lng, radiusMiles);
   const prefix = `arc-${Date.now()}`;
 
   // Discover public crime feature services near these coordinates
-  const services = await discoverCrimeServices(bbox);
+  const services = await discoverCrimeServices(bbox, locationName);
   if (services.length === 0) {
     return []; // No crime feature services found in this area — not an error
   }

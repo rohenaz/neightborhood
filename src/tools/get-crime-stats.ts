@@ -1,3 +1,4 @@
+import { cacheIncidents, getCachedIncidents } from "../cache.ts";
 import { zipToCoordinates } from "../geocode.ts";
 import { classifySeverity } from "../normalize.ts";
 import { fetchArcGIS } from "../sources/arcgis.ts";
@@ -27,7 +28,10 @@ export async function getCrimeStats(
 
   // Gather incidents from all working sources
   const fetchers = [
-    { source: "arcgis", fetch: () => fetchArcGIS(lat, lng, 10, days) },
+    {
+      source: "arcgis",
+      fetch: () => fetchArcGIS(lat, lng, 10, days, coords.displayName),
+    },
     {
       source: "news",
       fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName),
@@ -65,6 +69,32 @@ export async function getCrimeStats(
         error: msg,
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  // Cache fresh incidents
+  if (allIncidents.length > 0) {
+    try {
+      cacheIncidents(zipCode, allIncidents);
+    } catch (e) {
+      console.error("[cache] write failed:", e);
+    }
+  }
+
+  // If we got nothing fresh, pull from cache
+  if (allIncidents.length === 0) {
+    try {
+      const cached = getCachedIncidents({ zipCode, days: Math.max(days, 90) });
+      if (cached.length > 0) {
+        allIncidents.push(...cached);
+        sourceErrors.push({
+          source: "cache",
+          error: `Live sources returned no data. Showing ${cached.length} cached results.`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error("[cache] read failed:", e);
     }
   }
 

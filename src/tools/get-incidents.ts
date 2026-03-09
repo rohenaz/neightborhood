@@ -1,3 +1,4 @@
+import { cacheIncidents, getCachedIncidents } from "../cache.ts";
 import { zipToCoordinates } from "../geocode.ts";
 import { buildFeatureCollection } from "../normalize.ts";
 import { fetchArcGIS } from "../sources/arcgis.ts";
@@ -33,7 +34,7 @@ export async function getIncidents(
   const allFetchers: Array<{ source: IncidentSource; fetch: SourceFetch }> = [
     {
       source: "arcgis" as const,
-      fetch: () => fetchArcGIS(lat, lng, radius, days),
+      fetch: () => fetchArcGIS(lat, lng, radius, days, coords.displayName),
     },
     {
       source: "fbi" as const,
@@ -52,8 +53,9 @@ export async function getIncidents(
     sourceFetchers.map(({ fetch }) => fetch())
   );
 
-  const allIncidents: RawIncident[] = [];
+  const freshIncidents: RawIncident[] = [];
   const sourceErrors: SourceError[] = [];
+  const failedSources: IncidentSource[] = [];
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
@@ -61,7 +63,7 @@ export async function getIncidents(
     if (!result || !fetcher) continue;
 
     if (result.status === "fulfilled") {
-      allIncidents.push(...result.value);
+      freshIncidents.push(...result.value);
     } else {
       const errorMsg =
         result.reason instanceof Error
@@ -73,6 +75,56 @@ export async function getIncidents(
         error: errorMsg,
         timestamp: new Date().toISOString(),
       });
+      failedSources.push(fetcher.source);
+    }
+  }
+
+  // Cache any fresh data we got
+  if (freshIncidents.length > 0) {
+    try {
+      cacheIncidents(zipCode, freshIncidents);
+    } catch (e) {
+      console.error("[cache] write failed:", e);
+    }
+  }
+
+  // If some sources failed but we have cached data, backfill from cache
+  let allIncidents = freshIncidents;
+  if (failedSources.length > 0) {
+    try {
+      const cached = getCachedIncidents({
+        zipCode,
+        days: Math.max(days, 90), // look back further in cache for resilience
+        sources: failedSources,
+      });
+      if (cached.length > 0) {
+        allIncidents = [...freshIncidents, ...cached];
+        // Annotate errors that we served cached data instead
+        for (const err of sourceErrors) {
+          if (failedSources.includes(err.source as IncidentSource)) {
+            err.error += ` (serving ${cached.filter((c) => c.source === err.source).length} cached results)`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[cache] read failed:", e);
+    }
+  }
+
+  // If ALL sources failed and we got nothing fresh, try full cache
+  if (allIncidents.length === 0) {
+    try {
+      const cached = getCachedIncidents({ zipCode, days: 365 });
+      if (cached.length > 0) {
+        allIncidents = cached;
+        sourceErrors.push({
+          source: "cache",
+          error: `All live sources failed. Showing ${cached.length} cached results.`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error("[cache] fallback read failed:", e);
     }
   }
 
@@ -89,5 +141,13 @@ export async function getIncidents(
     }
   });
 
-  return buildFeatureCollection(zipCode, radius, days, filtered, sourceErrors);
+  // Deduplicate by incident ID (cache + fresh may overlap)
+  const seen = new Set<string>();
+  const deduped = filtered.filter((inc) => {
+    if (seen.has(inc.id)) return false;
+    seen.add(inc.id);
+    return true;
+  });
+
+  return buildFeatureCollection(zipCode, radius, days, deduped, sourceErrors);
 }
