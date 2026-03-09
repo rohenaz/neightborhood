@@ -39149,43 +39149,6 @@ async function fetchFBIAgenciesByState(state, apiKey) {
   const data = await response.json();
   return data.results ?? [];
 }
-async function fetchFBI(lat, lng, radiusMiles) {
-  const apiKey = process.env.FBI_API_KEY;
-  if (!apiKey) {
-    throw new Error("FBI_API_KEY is not set. Get a free key at https://api.data.gov/signup");
-  }
-  const nearbyAgencies = await findNearbyORIs(lat, lng, radiusMiles, apiKey);
-  if (nearbyAgencies.length === 0)
-    return [];
-  const currentYear = new Date().getFullYear();
-  const reportYear = currentYear - 1;
-  const results = await Promise.allSettled(nearbyAgencies.map((a2) => fetchAgencyOffenses(a2.ori, apiKey, reportYear)));
-  const incidents = [];
-  for (let i = 0;i < nearbyAgencies.length; i++) {
-    const agency = nearbyAgencies[i];
-    if (!agency)
-      continue;
-    const result = results[i];
-    if (!result || result.status === "rejected")
-      continue;
-    for (const offense of result.value) {
-      if (!offense.offense_name || !offense.count)
-        continue;
-      incidents.push({
-        source: "fbi",
-        id: `fbi-${agency.ori}-${offense.offense_name}-${reportYear}`,
-        type: offense.offense_name,
-        description: `${offense.offense_name}: ${offense.count} incidents reported in ${reportYear} (${agency.name})`,
-        date: `${reportYear}-12-31T00:00:00.000Z`,
-        address: agency.name,
-        lat: agency.lat,
-        lng: agency.lng,
-        severity: undefined
-      });
-    }
-  }
-  return incidents;
-}
 async function fetchFBIStats(lat, lng, radiusMiles) {
   const apiKey = process.env.FBI_API_KEY;
   if (!apiKey) {
@@ -39884,7 +39847,7 @@ async function fetchSpotCrime(lat, lng, radiusMiles, days) {
 }
 
 // src/tools/get-incidents.ts
-var ALL_SOURCES = ["arcgis", "fbi", "news", "socrata", "spotcrime"];
+var ALL_SOURCES = ["arcgis", "socrata", "spotcrime"];
 async function getIncidents(input) {
   const { zipCode, radius = 5, days = 30 } = input;
   const enabledSources = input.sources ?? ALL_SOURCES;
@@ -39894,14 +39857,6 @@ async function getIncidents(input) {
     {
       source: "arcgis",
       fetch: () => fetchArcGIS(lat, lng, radius, days, coords.displayName)
-    },
-    {
-      source: "fbi",
-      fetch: () => fetchFBI(lat, lng, radius)
-    },
-    {
-      source: "news",
-      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName)
     },
     {
       source: "socrata",
@@ -39980,8 +39935,6 @@ async function getIncidents(input) {
   const cutoff = new Date;
   cutoff.setDate(cutoff.getDate() - days);
   const filtered = allIncidents.filter((incident) => {
-    if (incident.source === "fbi")
-      return true;
     try {
       return new Date(incident.date) >= cutoff;
     } catch {
@@ -40036,15 +39989,6 @@ var SOURCE_METADATA = [
     testUrl: "https://www.arcgis.com/"
   },
   {
-    name: "news",
-    label: "Crime News (RSS)",
-    coverage: "Google News + Patch.com local feeds",
-    updateFrequency: "Real-time (RSS)",
-    requiresApiKey: false,
-    unlocks: "Local crime news headlines and alerts from RSS feeds",
-    testUrl: "https://news.google.com/rss/search?q=crime"
-  },
-  {
     name: "socrata",
     label: "Socrata Open Data (SODA API)",
     coverage: "Hundreds of US city police department open data portals with real-time crime incident data",
@@ -40061,17 +40005,6 @@ var SOURCE_METADATA = [
     requiresApiKey: false,
     unlocks: "Point-level crime incidents with type classification from police blotters",
     testUrl: "https://api.spotcrime.com/crimes.json?lat=0&lon=0&radius=0.01&key=This-api-key-is-for-2025-commercial-use-exclusively.Only-entities-with-a-Spotcrime-contract-May-use-this-key.Email-feedback-at-spotcrime.com."
-  },
-  {
-    name: "fbi",
-    label: "FBI Crime Data Explorer",
-    coverage: "National — NIBRS data for 18,000+ law enforcement agencies",
-    updateFrequency: "Annual (prior-year aggregate data)",
-    requiresApiKey: true,
-    apiKeyEnvVar: "FBI_API_KEY",
-    signupUrl: "https://api.data.gov/signup",
-    unlocks: "Historical crime statistics by offense type for nearby agencies — adds trend context to real-time data",
-    testUrl: "https://api.usa.gov/crime/fbi/cde/"
   }
 ];
 async function checkSourceOnline(testUrl) {
@@ -40141,6 +40074,7 @@ async function listSources() {
 // src/index.ts
 var __dirname2 = dirname(fileURLToPath(import.meta.url));
 var MAP_RESOURCE_URI = "ui://neighborhood/map.html";
+var DATA_TABLE_RESOURCE_URI = "ui://neighborhood/data-table";
 function createServer() {
   const srv = new McpServer({
     name: "neighborhood",
@@ -40161,11 +40095,11 @@ function createServer() {
 function registerTools(server) {
   server.registerTool("get_incidents", {
     title: "Get Crime Incidents",
-    description: "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, news, and FBI sources. Add FBI_API_KEY for historical data.",
+    description: "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, Socrata, and SpotCrime sources.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
-      sources: exports_external.array(exports_external.enum(["arcgis", "fbi", "news"])).optional().describe("Data sources to query (default: all)"),
+      sources: exports_external.array(exports_external.enum(["arcgis", "socrata", "spotcrime"])).optional().describe("Data sources to query (default: all)"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days to look back (default: 30)")
     }
   }, async (args) => {
@@ -40183,7 +40117,7 @@ function registerTools(server) {
   });
   server.registerTool("get_crime_stats", {
     title: "Get Crime Statistics",
-    description: "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, trend analysis, and historical FBI data.",
+    description: "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, and trend analysis.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for recent trend analysis (default: 30)")
@@ -40316,6 +40250,66 @@ function registerResources(server) {
               }
             }
           }
+        }
+      ]
+    };
+  });
+  ID(server, "get_crime_data", {
+    title: "Crime Data Table",
+    description: "Generate an interactive crime statistics and alerts table rendered inline. Shows incident counts by severity and type, trend analysis, and recent news alerts.",
+    inputSchema: {
+      zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
+      days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for trend analysis (default: 30)")
+    },
+    _meta: {
+      ui: {
+        resourceUri: DATA_TABLE_RESOURCE_URI
+      }
+    }
+  }, async (args) => {
+    const [stats, alertsResult] = await Promise.all([
+      getCrimeStats({ zipCode: args.zipCode, days: args.days }),
+      getAlerts({ zipCode: args.zipCode })
+    ]);
+    const summary = `${stats.totalIncidents} incidents in ${args.zipCode} over ${args.days}d — trend: ${stats.trend}, ${alertsResult.alerts.length} alerts`;
+    return {
+      structuredContent: {
+        zipCode: args.zipCode,
+        days: args.days,
+        totalIncidents: stats.totalIncidents,
+        trend: stats.trend,
+        bySeverity: stats.bySeverity,
+        topTypes: stats.topTypes,
+        bySource: stats.bySource,
+        alerts: alertsResult.alerts,
+        sourceErrors: [
+          ...stats.sourceErrors || [],
+          ...alertsResult.sourceErrors || []
+        ],
+        generatedAt: stats.generatedAt
+      },
+      content: [{ type: "text", text: summary }],
+      _meta: {
+        viewUUID: randomUUID()
+      }
+    };
+  });
+  cD(server, "Crime Data Table View", DATA_TABLE_RESOURCE_URI, {
+    description: "Interactive crime statistics and alerts data table"
+  }, async () => {
+    const distPath = join2(__dirname2, "..", "dist", "data-table.html");
+    try {
+      await readFile(distPath, "utf-8");
+    } catch {
+      throw new Error(`Bundled view not found at ${distPath}. Run 'bun run build:view' first.`);
+    }
+    const html = await readFile(distPath, "utf-8");
+    return {
+      contents: [
+        {
+          uri: DATA_TABLE_RESOURCE_URI,
+          mimeType: AI,
+          text: html
         }
       ]
     };

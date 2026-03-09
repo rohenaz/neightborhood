@@ -1,4 +1,4 @@
-export type IncidentSource = "arcgis" | "fbi" | "news" | "socrata" | "spotcrime";
+export type IncidentSource = "arcgis" | "socrata" | "spotcrime";
 
 export type IncidentSeverity = "low" | "medium" | "high";
 

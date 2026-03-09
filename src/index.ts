@@ -32,6 +32,7 @@ import type { IncidentSource } from "./types.ts";
 // ---------------------------------------------------------------------------
 
 const MAP_RESOURCE_URI = "ui://neighborhood/map.html";
+const DATA_TABLE_RESOURCE_URI = "ui://neighborhood/data-table";
 
 function createServer(): McpServer {
   const srv = new McpServer(
@@ -66,7 +67,7 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Incidents",
       description:
-        "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, news, and FBI sources. Add FBI_API_KEY for historical data.",
+        "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, Socrata, and SpotCrime sources.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
         radius: z
@@ -77,7 +78,7 @@ function registerTools(server: McpServer) {
           .default(5)
           .describe("Search radius in miles (default: 5)"),
         sources: z
-          .array(z.enum(["arcgis", "fbi", "news"]))
+          .array(z.enum(["arcgis", "socrata", "spotcrime"]))
           .optional()
           .describe("Data sources to query (default: all)"),
         days: z
@@ -110,7 +111,7 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Statistics",
       description:
-        "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, trend analysis, and historical FBI data.",
+        "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, and trend analysis.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code"),
         days: z
@@ -323,6 +324,98 @@ function registerResources(server: McpServer) {
                 },
               },
             },
+          },
+        ],
+      };
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // MCP App tool + resource — crime stats & alerts data table rendered inline
+  // ---------------------------------------------------------------------------
+
+  registerAppTool(
+    server,
+    "get_crime_data",
+    {
+      title: "Crime Data Table",
+      description:
+        "Generate an interactive crime statistics and alerts table rendered inline. Shows incident counts by severity and type, trend analysis, and recent news alerts.",
+      inputSchema: {
+        zipCode: z.string().min(5).max(10).describe("US ZIP code"),
+        days: z
+          .number()
+          .int()
+          .positive()
+          .max(365)
+          .optional()
+          .default(30)
+          .describe("Number of days for trend analysis (default: 30)"),
+      },
+      _meta: {
+        ui: {
+          resourceUri: DATA_TABLE_RESOURCE_URI,
+        },
+      },
+    },
+    async (args) => {
+      const [stats, alertsResult] = await Promise.all([
+        getCrimeStats({ zipCode: args.zipCode, days: args.days }),
+        getAlerts({ zipCode: args.zipCode }),
+      ]);
+
+      const summary = `${stats.totalIncidents} incidents in ${args.zipCode} over ${args.days}d — trend: ${stats.trend}, ${alertsResult.alerts.length} alerts`;
+
+      return {
+        structuredContent: {
+          zipCode: args.zipCode,
+          days: args.days,
+          totalIncidents: stats.totalIncidents,
+          trend: stats.trend,
+          bySeverity: stats.bySeverity,
+          topTypes: stats.topTypes,
+          bySource: stats.bySource,
+          alerts: alertsResult.alerts,
+          sourceErrors: [
+            ...(stats.sourceErrors || []),
+            ...(alertsResult.sourceErrors || []),
+          ],
+          generatedAt: stats.generatedAt,
+        },
+        content: [{ type: "text" as const, text: summary }],
+        _meta: {
+          viewUUID: randomUUID(),
+        },
+      };
+    }
+  );
+
+  // Register the View HTML resource that the data table tool references
+  registerAppResource(
+    server,
+    "Crime Data Table View",
+    DATA_TABLE_RESOURCE_URI,
+    {
+      description: "Interactive crime statistics and alerts data table",
+    },
+    async () => {
+      const distPath = join(__dirname, "..", "dist", "data-table.html");
+
+      try {
+        await readFile(distPath, "utf-8");
+      } catch {
+        throw new Error(
+          `Bundled view not found at ${distPath}. Run 'bun run build:view' first.`
+        );
+      }
+
+      const html = await readFile(distPath, "utf-8");
+      return {
+        contents: [
+          {
+            uri: DATA_TABLE_RESOURCE_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
           },
         ],
       };

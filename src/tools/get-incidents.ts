@@ -2,8 +2,6 @@ import { cacheIncidents, getCachedIncidents } from "../cache.ts";
 import { zipToCoordinates } from "../geocode.ts";
 import { buildFeatureCollection } from "../normalize.ts";
 import { fetchArcGIS } from "../sources/arcgis.ts";
-import { fetchFBI } from "../sources/fbi.ts";
-import { fetchNewsAsIncidents } from "../sources/news.ts";
 import { fetchSocrata } from "../sources/socrata.ts";
 import { fetchSpotCrime } from "../sources/spotcrime.ts";
 import type {
@@ -20,7 +18,7 @@ export interface GetIncidentsInput {
   days?: number; // default 30
 }
 
-const ALL_SOURCES: IncidentSource[] = ["arcgis", "fbi", "news", "socrata", "spotcrime"];
+const ALL_SOURCES: IncidentSource[] = ["arcgis", "socrata", "spotcrime"];
 
 export async function getIncidents(
   input: GetIncidentsInput
@@ -37,14 +35,6 @@ export async function getIncidents(
     {
       source: "arcgis" as const,
       fetch: () => fetchArcGIS(lat, lng, radius, days, coords.displayName),
-    },
-    {
-      source: "fbi" as const,
-      fetch: () => fetchFBI(lat, lng, radius),
-    },
-    {
-      source: "news" as const,
-      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName),
     },
     {
       source: "socrata" as const,
@@ -142,8 +132,6 @@ export async function getIncidents(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   const filtered = allIncidents.filter((incident) => {
-    // FBI data is annual — always include it regardless of date filter
-    if (incident.source === "fbi") return true;
     try {
       return new Date(incident.date) >= cutoff;
     } catch {

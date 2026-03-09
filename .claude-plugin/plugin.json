@@ -1,7 +1,7 @@
 {
   "name": "neighborhood",
-  "version": "1.1.0",
-  "description": "Live crime data aggregation MCP plugin — queries ArcGIS, Socrata, SpotCrime, FBI CDE, and news RSS by zip code. Returns unified GeoJSON with interactive MapLibre GL map, clustering, scanner feeds, and dark/light theme support via MCP Apps.",
+  "version": "1.2.0",
+  "description": "Live crime data aggregation MCP plugin — queries ArcGIS, Socrata, and SpotCrime by zip code. Returns unified GeoJSON with interactive MapLibre GL map, clustering, scanner feeds, dark/light theme support, and a separate data table view for FBI stats and news via MCP Apps.",
   "author": {
     "name": "rohenaz",
     "url": "https://github.com/rohenaz"

@@ -23,15 +23,6 @@ export const SOURCE_METADATA: SourceMeta[] = [
     testUrl: "https://www.arcgis.com/",
   },
   {
-    name: "news",
-    label: "Crime News (RSS)",
-    coverage: "Google News + Patch.com local feeds",
-    updateFrequency: "Real-time (RSS)",
-    requiresApiKey: false,
-    unlocks: "Local crime news headlines and alerts from RSS feeds",
-    testUrl: "https://news.google.com/rss/search?q=crime",
-  },
-  {
     name: "socrata",
     label: "Socrata Open Data (SODA API)",
     coverage:
@@ -53,18 +44,6 @@ export const SOURCE_METADATA: SourceMeta[] = [
       "Point-level crime incidents with type classification from police blotters",
     testUrl:
       "https://api.spotcrime.com/crimes.json?lat=0&lon=0&radius=0.01&key=This-api-key-is-for-2025-commercial-use-exclusively.Only-entities-with-a-Spotcrime-contract-May-use-this-key.Email-feedback-at-spotcrime.com.",
-  },
-  {
-    name: "fbi",
-    label: "FBI Crime Data Explorer",
-    coverage: "National — NIBRS data for 18,000+ law enforcement agencies",
-    updateFrequency: "Annual (prior-year aggregate data)",
-    requiresApiKey: true,
-    apiKeyEnvVar: "FBI_API_KEY",
-    signupUrl: "https://api.data.gov/signup",
-    unlocks:
-      "Historical crime statistics by offense type for nearby agencies — adds trend context to real-time data",
-    testUrl: "https://api.usa.gov/crime/fbi/cde/",
   },
 ];
 

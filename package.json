@@ -8,7 +8,7 @@
     "start": "bun run src/index.ts --stdio",
     "serve": "bun run src/index.ts",
     "dev": "bun run build:view && bun --watch run src/index.ts",
-    "build:view": "vite build",
+    "build:view": "VITE_ENTRY=map vite build && VITE_ENTRY=data-table vite build",
     "build": "bun run build:view && bun build src/index.ts --target=node --outfile=build/server.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/"
