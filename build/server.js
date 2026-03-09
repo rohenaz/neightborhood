@@ -38269,6 +38269,129 @@ function getCachedIncidents(opts) {
 // src/geocode.ts
 var NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
 var USER_AGENT = "neighborhood-mcp/1.0 (crime-data-aggregator)";
+var STATE_TO_ZIP = {
+  AL: "36104",
+  AK: "99801",
+  AZ: "85001",
+  AR: "72201",
+  CA: "95814",
+  CO: "80202",
+  CT: "06103",
+  DE: "19901",
+  FL: "32301",
+  GA: "30303",
+  HI: "96813",
+  ID: "83702",
+  IL: "62701",
+  IN: "46204",
+  IA: "50309",
+  KS: "66603",
+  KY: "40601",
+  LA: "70802",
+  ME: "04330",
+  MD: "21401",
+  MA: "02201",
+  MI: "48933",
+  MN: "55101",
+  MS: "39201",
+  MO: "65101",
+  MT: "59601",
+  NE: "68502",
+  NV: "89701",
+  NH: "03301",
+  NJ: "08608",
+  NM: "87501",
+  NY: "12207",
+  NC: "27601",
+  ND: "58501",
+  OH: "43215",
+  OK: "73102",
+  OR: "97301",
+  PA: "17101",
+  RI: "02903",
+  SC: "29201",
+  SD: "57501",
+  TN: "37219",
+  TX: "78701",
+  UT: "84111",
+  VT: "05602",
+  VA: "23219",
+  WA: "98501",
+  WV: "25301",
+  WI: "53703",
+  WY: "82001",
+  DC: "20001"
+};
+var STATE_NAMES = {
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
+  wyoming: "WY",
+  "district of columbia": "DC",
+  dc: "DC"
+};
+function resolveLocation(input) {
+  const trimmed = input.trim();
+  if (/^\d{5}$/.test(trimmed)) {
+    return { zip: trimmed, label: trimmed };
+  }
+  const upper = trimmed.toUpperCase();
+  if (STATE_TO_ZIP[upper]) {
+    return { zip: STATE_TO_ZIP[upper], label: `${upper} (capital area)` };
+  }
+  const lower = trimmed.toLowerCase();
+  const abbr = STATE_NAMES[lower];
+  if (abbr && STATE_TO_ZIP[abbr]) {
+    return { zip: STATE_TO_ZIP[abbr], label: `${abbr} (capital area)` };
+  }
+  return null;
+}
 async function zipToCoordinates(zipCode) {
   const cacheKey = `zip:${zipCode}`;
   const cached2 = geocodeCache.get(cacheKey);
@@ -40208,15 +40331,19 @@ function registerTools(server) {
     title: "Get Crime Incidents",
     description: "Text summary of recent crime incidents near a US ZIP code. For interactive visualization, use get_map_html instead.",
     inputSchema: {
-      zipCode: exports_external.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
+      zipCode: exports_external.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
       sources: exports_external.array(exports_external.enum(["arcgis", "socrata", "spotcrime"])).optional().describe("Data sources to query (default: all)"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days to look back (default: 30)"),
       format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
+    const resolved = resolveLocation(args.zipCode);
+    if (!resolved) {
+      return { content: [{ type: "text", text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+    }
     const result = await getIncidents({
-      zipCode: args.zipCode,
+      zipCode: resolved.zip,
       radius: args.radius,
       sources: args.sources,
       days: args.days
@@ -40228,14 +40355,18 @@ function registerTools(server) {
   });
   server.registerTool("get_crime_stats", {
     title: "Get Crime Statistics",
-    description: "Text summary of aggregated crime statistics for a ZIP code. For interactive visualization, use get_crime_data instead.",
+    description: "Text summary of aggregated crime statistics. Accepts ZIP code, state abbreviation, or state name.",
     inputSchema: {
-      zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
+      zipCode: exports_external.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for recent trend analysis (default: 30)"),
       format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
-    const result = await getCrimeStats(args);
+    const resolved = resolveLocation(args.zipCode);
+    if (!resolved) {
+      return { content: [{ type: "text", text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+    }
+    const result = await getCrimeStats({ zipCode: resolved.zip, days: args.days });
     const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatStatsSummary(result);
     return {
       content: [{ type: "text", text }]
@@ -40256,15 +40387,19 @@ function registerTools(server) {
   });
   server.registerTool("get_alerts", {
     title: "Get Crime Alerts",
-    description: "Brief text summary of recent crime news for a ZIP code. For full interactive view with filtering, use get_crime_data instead.",
+    description: "Brief text summary of recent crime news. Accepts ZIP code, state abbreviation, or state name.",
     inputSchema: {
-      zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
+      zipCode: exports_external.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
       keywords: exports_external.array(exports_external.string()).optional().describe("Keywords to filter crime news (default: broad crime-related terms)"),
       limit: exports_external.number().int().positive().max(50).optional().default(20).describe("Max alerts to return (default: 20)"),
       format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
-    const result = await getAlerts(args);
+    const resolved = resolveLocation(args.zipCode);
+    if (!resolved) {
+      return { content: [{ type: "text", text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+    }
+    const result = await getAlerts({ ...args, zipCode: resolved.zip });
     const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatAlertsSummary(result);
     return {
       content: [{ type: "text", text }]
@@ -40274,9 +40409,9 @@ function registerTools(server) {
 function registerResources(server) {
   ID(server, "get_map_html", {
     title: "Crime Map",
-    description: "ALWAYS use this tool for ANY crime, safety, or neighborhood query — even if the user gives a city, state, or vague location instead of a ZIP code. If no ZIP code is provided, ask the user for one. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
+    description: "ALWAYS use this tool for ANY crime, safety, or neighborhood query. Accepts a US ZIP code (e.g. '78701'), state abbreviation ('TX'), or full state name ('Texas'). For states, data is shown for the capital city area — the user can then change the ZIP in the UI to drill into other areas.",
     inputSchema: {
-      zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
+      zipCode: exports_external.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days to include (default: 30)")
     },
@@ -40286,19 +40421,27 @@ function registerResources(server) {
       }
     }
   }, async (args) => {
+    const resolved = resolveLocation(args.zipCode);
+    if (!resolved) {
+      return {
+        structuredContent: {},
+        content: [{ type: "text", text: `Could not resolve "${args.zipCode}" to a US location. Try a 5-digit ZIP code, state abbreviation (e.g. "AL"), or state name (e.g. "Alabama").` }]
+      };
+    }
+    const { zip, label } = resolved;
     const [coords, collection] = await Promise.all([
-      zipToCoordinates(args.zipCode),
+      zipToCoordinates(zip),
       getIncidents({
-        zipCode: args.zipCode,
+        zipCode: zip,
         radius: args.radius,
         days: args.days
       })
     ]);
     let scannerFeeds = [];
     try {
-      scannerFeeds = await discoverScannerFeeds(args.zipCode, coords.lat, coords.lng, coords.displayName ?? "");
+      scannerFeeds = await discoverScannerFeeds(zip, coords.lat, coords.lng, coords.displayName ?? "");
     } catch {}
-    const summary = `${collection.features.length} incidents near ${args.zipCode} (${args.radius}mi, ${args.days}d)`;
+    const summary = `${collection.features.length} incidents near ${label} / ${zip} (${args.radius}mi, ${args.days}d)`;
     const errorsBySource = new Map((collection.sourceErrors ?? []).map((e) => [e.source, e.error]));
     const sources = SOURCE_METADATA.map((m2) => {
       const hasApiKey = m2.requiresApiKey ? Boolean(m2.apiKeyEnvVar && process.env[m2.apiKeyEnvVar]) : true;
@@ -40316,7 +40459,7 @@ function registerResources(server) {
     });
     return {
       structuredContent: {
-        zipCode: args.zipCode,
+        zipCode: zip,
         radius: args.radius,
         days: args.days,
         lat: coords.lat,

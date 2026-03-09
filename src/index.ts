@@ -16,7 +16,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { zipToCoordinates } from "./geocode.ts";
+import { resolveLocation, zipToCoordinates } from "./geocode.ts";
 import {
   formatAlertsSummary,
   formatIncidentsSummary,
@@ -73,7 +73,7 @@ function registerTools(server: McpServer) {
       description:
         "Text summary of recent crime incidents near a US ZIP code. For interactive visualization, use get_map_html instead.",
       inputSchema: {
-        zipCode: z.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
+        zipCode: z.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
         radius: z
           .number()
           .positive()
@@ -103,8 +103,12 @@ function registerTools(server: McpServer) {
       },
     },
     async (args) => {
+      const resolved = resolveLocation(args.zipCode);
+      if (!resolved) {
+        return { content: [{ type: "text" as const, text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+      }
       const result = await getIncidents({
-        zipCode: args.zipCode,
+        zipCode: resolved.zip,
         radius: args.radius,
         sources: args.sources as IncidentSource[] | undefined,
         days: args.days,
@@ -124,9 +128,9 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Statistics",
       description:
-        "Text summary of aggregated crime statistics for a ZIP code. For interactive visualization, use get_crime_data instead.",
+        "Text summary of aggregated crime statistics. Accepts ZIP code, state abbreviation, or state name.",
       inputSchema: {
-        zipCode: z.string().min(5).max(10).describe("US ZIP code"),
+        zipCode: z.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
         days: z
           .number()
           .int()
@@ -145,7 +149,11 @@ function registerTools(server: McpServer) {
       },
     },
     async (args) => {
-      const result = await getCrimeStats(args);
+      const resolved = resolveLocation(args.zipCode);
+      if (!resolved) {
+        return { content: [{ type: "text" as const, text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+      }
+      const result = await getCrimeStats({ zipCode: resolved.zip, days: args.days });
       const text =
         args.format === "json"
           ? JSON.stringify(result, null, 2)
@@ -189,9 +197,9 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Alerts",
       description:
-        "Brief text summary of recent crime news for a ZIP code. For full interactive view with filtering, use get_crime_data instead.",
+        "Brief text summary of recent crime news. Accepts ZIP code, state abbreviation, or state name.",
       inputSchema: {
-        zipCode: z.string().min(5).max(10).describe("US ZIP code"),
+        zipCode: z.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
         keywords: z
           .array(z.string())
           .optional()
@@ -216,7 +224,11 @@ function registerTools(server: McpServer) {
       },
     },
     async (args) => {
-      const result = await getAlerts(args);
+      const resolved = resolveLocation(args.zipCode);
+      if (!resolved) {
+        return { content: [{ type: "text" as const, text: `Could not resolve "${args.zipCode}" to a US location. Try a ZIP code, state abbreviation, or state name.` }] };
+      }
+      const result = await getAlerts({ ...args, zipCode: resolved.zip });
       const text =
         args.format === "json"
           ? JSON.stringify(result, null, 2)
@@ -239,9 +251,9 @@ function registerResources(server: McpServer) {
     {
       title: "Crime Map",
       description:
-        "ALWAYS use this tool for ANY crime, safety, or neighborhood query — even if the user gives a city, state, or vague location instead of a ZIP code. If no ZIP code is provided, ask the user for one. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
+        "ALWAYS use this tool for ANY crime, safety, or neighborhood query. Accepts a US ZIP code (e.g. '78701'), state abbreviation ('TX'), or full state name ('Texas'). For states, data is shown for the capital city area — the user can then change the ZIP in the UI to drill into other areas.",
       inputSchema: {
-        zipCode: z.string().min(5).max(10).describe("US ZIP code"),
+        zipCode: z.string().min(2).max(20).describe("US ZIP code, state abbreviation (e.g. 'AL'), or state name (e.g. 'Alabama')"),
         radius: z
           .number()
           .positive()
@@ -265,10 +277,19 @@ function registerResources(server: McpServer) {
       },
     },
     async (args) => {
+      const resolved = resolveLocation(args.zipCode);
+      if (!resolved) {
+        return {
+          structuredContent: {},
+          content: [{ type: "text" as const, text: `Could not resolve "${args.zipCode}" to a US location. Try a 5-digit ZIP code, state abbreviation (e.g. "AL"), or state name (e.g. "Alabama").` }],
+        };
+      }
+
+      const { zip, label } = resolved;
       const [coords, collection] = await Promise.all([
-        zipToCoordinates(args.zipCode),
+        zipToCoordinates(zip),
         getIncidents({
-          zipCode: args.zipCode,
+          zipCode: zip,
           radius: args.radius,
           days: args.days,
         }),
@@ -278,7 +299,7 @@ function registerResources(server: McpServer) {
       let scannerFeeds: Awaited<ReturnType<typeof discoverScannerFeeds>> = [];
       try {
         scannerFeeds = await discoverScannerFeeds(
-          args.zipCode,
+          zip,
           coords.lat,
           coords.lng,
           coords.displayName ?? ""
@@ -287,7 +308,7 @@ function registerResources(server: McpServer) {
         // Scanner discovery is optional — don't block the map
       }
 
-      const summary = `${collection.features.length} incidents near ${args.zipCode} (${args.radius}mi, ${args.days}d)`;
+      const summary = `${collection.features.length} incidents near ${label} / ${zip} (${args.radius}mi, ${args.days}d)`;
 
       // Build unified source status — merge config + fetch results
       const errorsBySource = new Map(
@@ -312,7 +333,7 @@ function registerResources(server: McpServer) {
 
       return {
         structuredContent: {
-          zipCode: args.zipCode,
+          zipCode: zip,
           radius: args.radius,
           days: args.days,
           lat: coords.lat,
