@@ -6500,6 +6500,7 @@ var require_dist = __commonJS((exports, module) => {
 });
 
 // src/index.ts
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39470,13 +39471,23 @@ function registerResources(server) {
         features: collection.features,
         sourceErrors: collection.sourceErrors
       },
-      content: [{ type: "text", text: summary }]
+      content: [{ type: "text", text: summary }],
+      _meta: {
+        viewUUID: randomUUID()
+      }
     };
   });
   cD(server, "Crime Map View", MAP_RESOURCE_URI, {
     description: "Interactive Leaflet crime map with dark theme"
   }, async () => {
-    const viewPath = join2(__dirname2, "views", "map.html");
+    const distPath = join2(__dirname2, "..", "dist", "map.html");
+    let viewPath;
+    try {
+      await readFile(distPath, "utf-8");
+      viewPath = distPath;
+    } catch {
+      throw new Error(`Bundled view not found at ${distPath}. Run 'bun run build:view' first.`);
+    }
     const html = await readFile(viewPath, "utf-8");
     return {
       contents: [
@@ -39487,10 +39498,7 @@ function registerResources(server) {
           _meta: {
             ui: {
               csp: {
-                resourceDomains: [
-                  "https://unpkg.com",
-                  "https://*.tile.openstreetmap.org"
-                ],
+                resourceDomains: ["https://*.tile.openstreetmap.org"],
                 connectDomains: ["https://*.tile.openstreetmap.org"]
               }
             }

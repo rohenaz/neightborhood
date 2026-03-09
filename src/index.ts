@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -238,6 +239,9 @@ registerAppTool(
         sourceErrors: collection.sourceErrors,
       },
       content: [{ type: "text" as const, text: summary }],
+      _meta: {
+        viewUUID: randomUUID(),
+      },
     };
   }
 );
@@ -251,7 +255,20 @@ registerAppResource(
     description: "Interactive Leaflet crime map with dark theme",
   },
   async () => {
-    const viewPath = join(__dirname, "views", "map.html");
+    // Prefer the Vite-built single-file bundle; fall back to source only in
+    // development when the dist hasn't been built yet (will fail visibly).
+    const distPath = join(__dirname, "..", "dist", "map.html");
+
+    let viewPath: string;
+    try {
+      await readFile(distPath, "utf-8");
+      viewPath = distPath;
+    } catch {
+      throw new Error(
+        `Bundled view not found at ${distPath}. Run 'bun run build:view' first.`
+      );
+    }
+
     const html = await readFile(viewPath, "utf-8");
     return {
       contents: [
@@ -264,10 +281,9 @@ registerAppResource(
           _meta: {
             ui: {
               csp: {
-                resourceDomains: [
-                  "https://unpkg.com",
-                  "https://*.tile.openstreetmap.org",
-                ],
+                // All JS/CSS is inlined by vite-plugin-singlefile; only OSM
+                // tile requests need network access.
+                resourceDomains: ["https://*.tile.openstreetmap.org"],
                 connectDomains: ["https://*.tile.openstreetmap.org"],
               },
             },
