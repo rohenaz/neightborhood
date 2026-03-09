@@ -341,21 +341,25 @@
       padding: 4px 0;
     }
 
+    /* Override MapLibre defaults (its CSS is inlined after ours by Vite) */
     .maplibregl-popup-content {
-      background: var(--card);
-      color: var(--card-fg);
+      background: var(--card) !important;
+      color: var(--card-fg) !important;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       padding: 0;
     }
-    .maplibregl-popup-tip { border-top-color: var(--card); }
+    .maplibregl-popup-tip {
+      border-top-color: var(--card) !important;
+      border-bottom-color: var(--card) !important;
+    }
     .maplibregl-popup-close-button {
-      color: var(--muted);
+      color: var(--muted) !important;
       font-size: 16px;
       padding: 4px 8px;
     }
-    .maplibregl-popup-close-button:hover { color: var(--card-fg); }
+    .maplibregl-popup-close-button:hover { color: var(--card-fg) !important; }
 
     .popup { font-family: var(--font); min-width: 200px; padding: 12px 14px; }
     .popup-header {
