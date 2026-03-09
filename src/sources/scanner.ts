@@ -176,12 +176,20 @@ async function scrapeCountyFeeds(
   const html = await resp.text();
   const feeds: ScannerFeed[] = [];
 
+  // Extract only the main feed listing table (class="btable") to avoid
+  // picking up sidebar/nav feeds (e.g. "Top Feeds", "Featured Feeds")
+  // that belong to other counties/states.
+  const btableMatch = html.match(
+    /<table\s+class="btable"[^>]*>([\s\S]*?)<\/table>/i
+  );
+  if (!btableMatch) return feeds;
+  const feedTableHtml = btableMatch[1];
+
   // Feed links: <a href="/listen/feed/38639">...<span class="px13">Feed Name</span>...</a>
-  // Sometimes the structure varies, so look for feed IDs and nearby text
   const feedPattern =
     /<a\s+href="\/listen\/feed\/(\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
 
-  for (const match of html.matchAll(feedPattern)) {
+  for (const match of feedTableHtml.matchAll(feedPattern)) {
     const feedId = match[1];
     const inner = match[2];
 

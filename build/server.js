@@ -38443,8 +38443,12 @@ async function scrapeCountyFeeds(countyId, countyName) {
   }
   const html = await resp.text();
   const feeds = [];
+  const btableMatch = html.match(/<table\s+class="btable"[^>]*>([\s\S]*?)<\/table>/i);
+  if (!btableMatch)
+    return feeds;
+  const feedTableHtml = btableMatch[1];
   const feedPattern = /<a\s+href="\/listen\/feed\/(\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  for (const match2 of html.matchAll(feedPattern)) {
+  for (const match2 of feedTableHtml.matchAll(feedPattern)) {
     const feedId = match2[1];
     const inner = match2[2];
     const spanMatch = inner.match(/<span[^>]*class="[^"]*px13[^"]*"[^>]*>([^<]+)<\/span>/i);
