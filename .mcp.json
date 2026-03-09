@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "neighborhood": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/start.sh"
+      "command": "${CLAUDE_PLUGIN_ROOT:-.}/start.sh"
     }
   }
 }

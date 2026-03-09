@@ -7,6 +7,7 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
+    "build": "bun build src/index.ts --target=node --outfile=build/server.js && cp -r src/views build/views",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/"
   },

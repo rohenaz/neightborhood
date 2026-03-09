@@ -18,4 +18,9 @@ elif [[ -f "$HOME/.config/neighborhood/.env" ]]; then
   set +a
 fi
 
-exec bun run "$SCRIPT_DIR/src/index.ts"
+# Use bun if available (local dev), fall back to node (Claude Desktop VM)
+if command -v bun >/dev/null 2>&1; then
+  exec bun run "$SCRIPT_DIR/src/index.ts"
+else
+  exec node "$SCRIPT_DIR/build/server.js"
+fi

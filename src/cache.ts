@@ -1,7 +1,15 @@
-import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { RawIncident } from "./types.ts";
+
+// Dynamic import of bun:sqlite — gracefully degrades to no-op on Node.js
+let Database: typeof import("bun:sqlite").Database | null = null;
+try {
+  const mod = await import("bun:sqlite");
+  Database = mod.Database;
+} catch {
+  // Not running under Bun — SQLite cache disabled
+}
 
 // ---------------------------------------------------------------------------
 // In-memory TTL cache (for geocode results within a session)
@@ -83,9 +91,10 @@ function ensureDataDir(): void {
   }
 }
 
-let _db: Database | null = null;
+let _db: InstanceType<NonNullable<typeof Database>> | null = null;
 
-function getDb(): Database {
+function getDb(): InstanceType<NonNullable<typeof Database>> | null {
+  if (!Database) return null; // bun:sqlite not available
   if (_db) return _db;
 
   ensureDataDir();
@@ -134,6 +143,7 @@ export function cacheIncidents(
   if (incidents.length === 0) return;
 
   const db = getDb();
+  if (!db) return; // SQLite not available (Node.js runtime)
   const now = Date.now();
 
   const stmt = db.prepare(`
@@ -175,6 +185,7 @@ export function getCachedIncidents(opts: {
   sources?: string[];
 }): RawIncident[] {
   const db = getDb();
+  if (!db) return [];
   const { zipCode, days = 365, sources } = opts;
 
   const cutoff = new Date();
@@ -229,6 +240,8 @@ export function getCacheStats(zipCode: string): {
   newestDate: string | null;
 } {
   const db = getDb();
+  if (!db)
+    return { total: 0, bySource: {}, oldestDate: null, newestDate: null };
 
   const total = (
     db
@@ -265,6 +278,7 @@ export function getCacheStats(zipCode: string): {
  */
 export function pruneCache(maxDays: number = 365): number {
   const db = getDb();
+  if (!db) return 0;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - maxDays);
 

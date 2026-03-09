@@ -1,5 +1,10 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Cross-runtime __dirname: works in both Bun and Node.js ESM
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 import {
   RESOURCE_MIME_TYPE,
   registerAppResource,
@@ -225,7 +230,7 @@ registerAppResource(
     description: "Interactive Leaflet crime map with dark theme",
   },
   async () => {
-    const viewPath = join(import.meta.dir, "views", "map.html");
+    const viewPath = join(__dirname, "views", "map.html");
     const html = await readFile(viewPath, "utf-8");
     return {
       contents: [
