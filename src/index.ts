@@ -289,6 +289,27 @@ function registerResources(server: McpServer) {
 
       const summary = `${collection.features.length} incidents near ${args.zipCode} (${args.radius}mi, ${args.days}d)`;
 
+      // Build unified source status — merge config + fetch results
+      const errorsBySource = new Map(
+        (collection.sourceErrors ?? []).map((e) => [e.source, e.error])
+      );
+      const sources = SOURCE_METADATA.map((m) => {
+        const hasApiKey = m.requiresApiKey
+          ? Boolean(m.apiKeyEnvVar && process.env[m.apiKeyEnvVar])
+          : true;
+        const fetchError = errorsBySource.get(m.name);
+        return {
+          name: m.name,
+          label: m.label,
+          requiresApiKey: m.requiresApiKey,
+          apiKeyEnvVar: m.apiKeyEnvVar,
+          signupUrl: m.signupUrl,
+          hasApiKey,
+          isOnline: hasApiKey && !fetchError,
+          error: fetchError,
+        };
+      });
+
       return {
         structuredContent: {
           zipCode: args.zipCode,
@@ -300,16 +321,7 @@ function registerResources(server: McpServer) {
           features: collection.features,
           sourceErrors: collection.sourceErrors,
           scannerFeeds,
-          sources: SOURCE_METADATA.map((m) => ({
-            name: m.name,
-            label: m.label,
-            requiresApiKey: m.requiresApiKey,
-            apiKeyEnvVar: m.apiKeyEnvVar,
-            signupUrl: m.signupUrl,
-            hasApiKey: m.requiresApiKey
-              ? Boolean(m.apiKeyEnvVar && process.env[m.apiKeyEnvVar])
-              : true,
-          })),
+          sources,
         },
         content: [{ type: "text" as const, text: summary }],
       };

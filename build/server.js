@@ -40299,6 +40299,21 @@ function registerResources(server) {
       scannerFeeds = await discoverScannerFeeds(args.zipCode, coords.lat, coords.lng, coords.displayName ?? "");
     } catch {}
     const summary = `${collection.features.length} incidents near ${args.zipCode} (${args.radius}mi, ${args.days}d)`;
+    const errorsBySource = new Map((collection.sourceErrors ?? []).map((e) => [e.source, e.error]));
+    const sources = SOURCE_METADATA.map((m2) => {
+      const hasApiKey = m2.requiresApiKey ? Boolean(m2.apiKeyEnvVar && process.env[m2.apiKeyEnvVar]) : true;
+      const fetchError = errorsBySource.get(m2.name);
+      return {
+        name: m2.name,
+        label: m2.label,
+        requiresApiKey: m2.requiresApiKey,
+        apiKeyEnvVar: m2.apiKeyEnvVar,
+        signupUrl: m2.signupUrl,
+        hasApiKey,
+        isOnline: hasApiKey && !fetchError,
+        error: fetchError
+      };
+    });
     return {
       structuredContent: {
         zipCode: args.zipCode,
@@ -40310,14 +40325,7 @@ function registerResources(server) {
         features: collection.features,
         sourceErrors: collection.sourceErrors,
         scannerFeeds,
-        sources: SOURCE_METADATA.map((m2) => ({
-          name: m2.name,
-          label: m2.label,
-          requiresApiKey: m2.requiresApiKey,
-          apiKeyEnvVar: m2.apiKeyEnvVar,
-          signupUrl: m2.signupUrl,
-          hasApiKey: m2.requiresApiKey ? Boolean(m2.apiKeyEnvVar && process.env[m2.apiKeyEnvVar]) : true
-        }))
+        sources
       },
       content: [{ type: "text", text: summary }]
     };

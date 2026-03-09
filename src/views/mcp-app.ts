@@ -103,6 +103,8 @@ interface SourceInfo {
   apiKeyEnvVar?: string;
   signupUrl?: string;
   hasApiKey: boolean;
+  isOnline: boolean;
+  error?: string;
 }
 
 interface ScannerFeed {
@@ -506,40 +508,51 @@ function renderMap(data: MapData): void {
     `;
   }
 
-  if (sourceErrors && sourceErrors.length > 0) {
-    const errorsEl = document.getElementById("header-errors");
-    if (errorsEl) {
-      errorsEl.innerHTML = sourceErrors
-        .map(
-          (e) =>
-            `<span class="header-error-badge">${esc(e.source)} offline</span>`
-        )
-        .join("");
-    }
-  }
+  // Clear separate error badges — status now unified in sources dropdown
+  const errorsEl = document.getElementById("header-errors");
+  if (errorsEl) errorsEl.innerHTML = "";
 
   if (sources && sources.length > 0) {
-    const active = sources.filter((s) => s.hasApiKey).length;
+    const online = sources.filter((s) => s.isOnline).length;
     const total = sources.length;
     const indicatorEl = document.getElementById("sources-indicator");
     if (indicatorEl) {
-      const allActive = active === total;
-      indicatorEl.className = `sources-indicator ${allActive ? "sources-all" : "sources-partial"}`;
-      indicatorEl.textContent = `${active}/${total}`;
-      indicatorEl.title = "Click to see API key configuration";
+      const allOnline = online === total;
+      indicatorEl.className = `sources-indicator ${allOnline ? "sources-all" : "sources-partial"}`;
+      indicatorEl.textContent = `${online}/${total}`;
+      indicatorEl.title = "Data source status";
 
       const rows = sources
         .map((s) => {
-          const dot = s.hasApiKey ? "sources-dot-on" : "sources-dot-off";
-          const envLine =
-            s.requiresApiKey && s.apiKeyEnvVar
-              ? `<code class="sources-env">${esc(s.apiKeyEnvVar)}</code>`
-              : '<span class="sources-env sources-no-key">no key needed</span>';
-          const linkHtml =
-            !s.hasApiKey && s.signupUrl
-              ? ` <a href="${esc(s.signupUrl)}" target="_blank" rel="noopener noreferrer" class="sources-signup">get key</a>`
-              : "";
-          return `<div class="sources-row"><span class="sources-dot ${dot}"></span><span class="sources-name">${esc(s.label)}</span>${envLine}${linkHtml}</div>`;
+          // Green: online, Red: has key but fetch failed, Gray: no key
+          let dotClass: string;
+          if (!s.hasApiKey) {
+            dotClass = "sources-dot-off";
+          } else if (s.isOnline) {
+            dotClass = "sources-dot-on";
+          } else {
+            dotClass = "sources-dot-error";
+          }
+
+          let statusLine: string;
+          if (!s.hasApiKey && s.requiresApiKey && s.apiKeyEnvVar) {
+            // Missing env var — show the var name and get-key link
+            statusLine = `<code class="sources-env sources-env-missing">${esc(s.apiKeyEnvVar)}</code>`;
+            if (s.signupUrl) {
+              statusLine += ` <a href="${esc(s.signupUrl)}" target="_blank" rel="noopener noreferrer" class="sources-signup">get key</a>`;
+            }
+          } else if (!s.requiresApiKey && !s.isOnline && s.error) {
+            // No key needed but fetch failed — show error
+            statusLine = `<span class="sources-error-msg">${esc(s.error)}</span>`;
+          } else if (s.isOnline) {
+            statusLine = '<span class="sources-status-ok">online</span>';
+          } else if (s.error) {
+            statusLine = `<span class="sources-error-msg">${esc(s.error)}</span>`;
+          } else {
+            statusLine = '<span class="sources-env sources-no-key">no key needed</span>';
+          }
+
+          return `<div class="sources-row"><span class="sources-dot ${dotClass}"></span><span class="sources-name">${esc(s.label)}</span>${statusLine}</div>`;
         })
         .join("");
 

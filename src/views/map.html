@@ -229,6 +229,7 @@
     }
     .sources-dot-on { background: hsl(142 72% 45%); }
     .sources-dot-off { background: hsl(0 0% 35%); }
+    .sources-dot-error { background: hsl(0 84% 50%); }
     .sources-name {
       color: var(--card-fg);
       font-weight: 500;
@@ -243,12 +244,33 @@
       border-radius: 4px;
       margin-left: auto;
     }
+    .sources-env-missing {
+      color: hsl(0 84% 70%);
+      background: hsl(0 84% 15%);
+    }
     .sources-no-key {
       font-family: var(--font);
       background: none;
       padding: 0;
       color: var(--muted);
       font-style: italic;
+    }
+    .sources-status-ok {
+      font-size: 10px;
+      color: hsl(142 72% 55%);
+      margin-left: auto;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 500;
+    }
+    .sources-error-msg {
+      font-size: 10px;
+      color: hsl(0 84% 70%);
+      margin-left: auto;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .sources-signup {
       font-size: 10px;
