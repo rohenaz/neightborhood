@@ -248,7 +248,7 @@ export async function fetchNewsAsIncidents(
   const JITTER = 0.003;
   return alerts.slice(0, 20).map((alert, idx): RawIncident => {
     const angle = (idx / Math.min(alerts.length, 20)) * 2 * Math.PI;
-    const r = JITTER * (0.5 + 0.5 * ((idx * 7 + 3) % 10) / 10); // vary radius
+    const r = JITTER * (0.5 + (0.5 * ((idx * 7 + 3) % 10)) / 10); // vary radius
     return {
       source: "news",
       id: `news-${zipCode}-${idx}`,

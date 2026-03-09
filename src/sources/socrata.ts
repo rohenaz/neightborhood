@@ -228,7 +228,7 @@ const GEO_DATATYPES = new Set(["Point", "Location", "point", "location"]);
 
 function matchColumn(
   columns: string[],
-  patterns: RegExp[],
+  patterns: RegExp[]
 ): string | undefined {
   for (const pattern of patterns) {
     const match = columns.find((c) => pattern.test(c));
@@ -240,7 +240,7 @@ function matchColumn(
 // Match a point/location column only if its datatype is an actual geo type
 function matchPointColumn(
   columns: string[],
-  datatypes: string[],
+  datatypes: string[]
 ): string | undefined {
   for (const pattern of POINT_PATTERNS) {
     const idx = columns.findIndex((c) => pattern.test(c));
@@ -276,7 +276,7 @@ function haversineDistance(
   lat1: number,
   lng1: number,
   lat2: number,
-  lng2: number,
+  lng2: number
 ): number {
   const R = 3959;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -292,7 +292,7 @@ function haversineDistance(
 // Discover datasets from the curated registry that cover the given coordinates
 function findKnownDatasets(lat: number, lng: number): DatasetInfo[] {
   return KNOWN_DATASETS.filter(
-    (d) => haversineDistance(lat, lng, d.lat, d.lng) <= d.radiusMiles,
+    (d) => haversineDistance(lat, lng, d.lat, d.lng) <= d.radiusMiles
   ).map((d) => ({
     domain: d.domain,
     id: d.id,
@@ -304,7 +304,7 @@ function findKnownDatasets(lat: number, lng: number): DatasetInfo[] {
 
 // Fetch column metadata for a dataset so we know how to query it
 async function fetchDatasetMetadata(
-  dataset: DatasetInfo,
+  dataset: DatasetInfo
 ): Promise<DatasetInfo | null> {
   // If we already have columns (from catalog search), return as-is
   if (dataset.columns.length > 0) return dataset;
@@ -338,11 +338,7 @@ async function fetchDatasetMetadata(
 
 // Discover crime datasets near given coordinates using the Socrata catalog API
 async function discoverCatalogDatasets(): Promise<DatasetInfo[]> {
-  const searches = [
-    "crime incidents",
-    "police incidents",
-    "crime reports",
-  ];
+  const searches = ["crime incidents", "police incidents", "crime reports"];
 
   // Run searches in parallel for broader coverage
   const results = await Promise.allSettled(
@@ -366,7 +362,7 @@ async function discoverCatalogDatasets(): Promise<DatasetInfo[]> {
       if (!response.ok) return [];
       const data = (await response.json()) as CatalogResponse;
       return data.results ?? [];
-    }),
+    })
   );
 
   // Combine and deduplicate by dataset ID
@@ -383,7 +379,7 @@ async function discoverCatalogDatasets(): Promise<DatasetInfo[]> {
       if (
         !hasRequiredColumns(
           r.resource.columns_field_name,
-          r.resource.columns_datatype ?? [],
+          r.resource.columns_datatype ?? []
         )
       )
         continue;
@@ -413,13 +409,18 @@ function extractCoords(
   record: SocrataRecord,
   latCol: string | undefined,
   lngCol: string | undefined,
-  pointCol: string | undefined,
+  pointCol: string | undefined
 ): { lat: number; lng: number } | null {
   // Try explicit lat/lng columns first
   if (latCol && lngCol) {
     const lat = Number(record[latCol]);
     const lng = Number(record[lngCol]);
-    if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat !== 0 &&
+      lng !== 0
+    ) {
       return { lat, lng };
     }
   }
@@ -432,14 +433,24 @@ function extractCoords(
       // Standard Socrata location object: { latitude: "39.1", longitude: "-84.5" }
       const lat = Number(p.latitude ?? p.lat);
       const lng = Number(p.longitude ?? p.lng ?? p.lon);
-      if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+      if (
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        lat !== 0 &&
+        lng !== 0
+      ) {
         return { lat, lng };
       }
       // Some have coordinates array: { type: "Point", coordinates: [lng, lat] }
       if (Array.isArray(p.coordinates) && p.coordinates.length >= 2) {
         const cLng = Number(p.coordinates[0]);
         const cLat = Number(p.coordinates[1]);
-        if (isFinite(cLat) && isFinite(cLng) && cLat !== 0 && cLng !== 0) {
+        if (
+          Number.isFinite(cLat) &&
+          Number.isFinite(cLng) &&
+          cLat !== 0 &&
+          cLng !== 0
+        ) {
           return { lat: cLat, lng: cLng };
         }
       }
@@ -460,7 +471,7 @@ function isTextColumn(dataset: DatasetInfo, colName: string): boolean {
 async function queryDataset(
   dataset: DatasetInfo,
   bbox: { minLat: number; maxLat: number; minLng: number; maxLng: number },
-  days: number,
+  days: number
 ): Promise<RawIncident[]> {
   const { domain, id, columns, datatypes } = dataset;
 
@@ -494,14 +505,14 @@ async function queryDataset(
     // Convert degree span to meters (rough: 1 degree lat ~ 111km)
     const radiusMeters = (Math.max(latSpan, lngSpan) * 111000) / 2;
     whereClauses.push(
-      `within_circle(${pointCol}, ${centerLat}, ${centerLng}, ${radiusMeters})`,
+      `within_circle(${pointCol}, ${centerLat}, ${centerLng}, ${radiusMeters})`
     );
   } else if (latCol && lngCol) {
     // Text-typed lat/lng columns can't be compared numerically in SoQL —
     // skip server-side geo filter and do client-side filtering instead
     if (!isTextColumn(dataset, latCol) && !isTextColumn(dataset, lngCol)) {
       whereClauses.push(
-        `${latCol} > ${bbox.minLat} AND ${latCol} < ${bbox.maxLat} AND ${lngCol} > ${bbox.minLng} AND ${lngCol} < ${bbox.maxLng}`,
+        `${latCol} > ${bbox.minLat} AND ${latCol} < ${bbox.maxLat} AND ${lngCol} > ${bbox.minLng} AND ${lngCol} < ${bbox.maxLng}`
       );
     }
     // If text-typed, we'll filter client-side after extractCoords
@@ -536,7 +547,7 @@ async function queryDataset(
       return [];
     }
     throw new Error(
-      `Socrata ${dataset.name} (${domain}) error: HTTP ${response.status}`,
+      `Socrata ${dataset.name} (${domain}) error: HTTP ${response.status}`
     );
   }
 
@@ -591,7 +602,7 @@ export async function fetchSocrata(
   lat: number,
   lng: number,
   radiusMiles: number,
-  days: number,
+  days: number
 ): Promise<RawIncident[]> {
   const bbox = buildBoundingBox(lat, lng, radiusMiles);
 
@@ -628,7 +639,7 @@ export async function fetchSocrata(
   const toQuery = allDatasets.slice(0, 8);
 
   const results = await Promise.allSettled(
-    toQuery.map((ds) => queryDataset(ds, bbox, days)),
+    toQuery.map((ds) => queryDataset(ds, bbox, days))
   );
 
   const incidents: RawIncident[] = [];
@@ -641,7 +652,7 @@ export async function fetchSocrata(
       errors.push(
         result.reason instanceof Error
           ? result.reason.message
-          : String(result.reason),
+          : String(result.reason)
       );
     }
   }
@@ -650,7 +661,7 @@ export async function fetchSocrata(
   // (catalog-only failures are expected for locations without coverage)
   if (incidents.length === 0 && errors.length > 0 && knownDatasets.length > 0) {
     throw new Error(
-      `All Socrata datasets failed: ${errors.slice(0, 3).join("; ")}`,
+      `All Socrata datasets failed: ${errors.slice(0, 3).join("; ")}`
     );
   }
 

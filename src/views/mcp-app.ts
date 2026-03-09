@@ -22,12 +22,16 @@ function pinColor(type: string, severity: string | undefined): string {
   if (severity === "high") return COLORS.high;
   if (severity === "medium") return COLORS.medium;
   const lower = type.toLowerCase();
-  if (lower.includes("theft") || lower.includes("burglary")) return COLORS.theft;
-  if (lower.includes("assault") || lower.includes("robbery")) return COLORS.assault;
-  if (lower.includes("auto") || lower.includes("vehicle")) return COLORS.vehicle;
+  if (lower.includes("theft") || lower.includes("burglary"))
+    return COLORS.theft;
+  if (lower.includes("assault") || lower.includes("robbery"))
+    return COLORS.assault;
+  if (lower.includes("auto") || lower.includes("vehicle"))
+    return COLORS.vehicle;
   if (lower.includes("drug") || lower.includes("narcotic")) return COLORS.drugs;
   if (lower.includes("vandal")) return COLORS.vandalism;
-  if (lower.includes("sex") || lower.includes("offender")) return COLORS.sexOffender;
+  if (lower.includes("sex") || lower.includes("offender"))
+    return COLORS.sexOffender;
   if (lower.includes("news") || lower.includes("alert")) return COLORS.news;
   return COLORS.other;
 }
@@ -60,6 +64,15 @@ interface SourceInfo {
   hasApiKey: boolean;
 }
 
+interface ScannerFeed {
+  id: string;
+  name: string;
+  county: string;
+  listeners?: number;
+  status?: "online" | "offline";
+  url: string;
+}
+
 interface MapData {
   zipCode: string;
   lat: number;
@@ -69,6 +82,7 @@ interface MapData {
   features: Feature[];
   sourceErrors?: Array<{ source: string; error: string }>;
   sources?: SourceInfo[];
+  scannerFeeds?: ScannerFeed[];
 }
 
 let currentMap: L.Map | null = null;
@@ -138,12 +152,14 @@ function renderMap(data: MapData): void {
       const rows = sources
         .map((s) => {
           const dot = s.hasApiKey ? "sources-dot-on" : "sources-dot-off";
-          const envLine = s.requiresApiKey && s.apiKeyEnvVar
-            ? `<code class="sources-env">${esc(s.apiKeyEnvVar)}</code>`
-            : '<span class="sources-env sources-no-key">no key needed</span>';
-          const linkHtml = !s.hasApiKey && s.signupUrl
-            ? ` <a href="${esc(s.signupUrl)}" target="_blank" rel="noopener noreferrer" class="sources-signup">get key</a>`
-            : "";
+          const envLine =
+            s.requiresApiKey && s.apiKeyEnvVar
+              ? `<code class="sources-env">${esc(s.apiKeyEnvVar)}</code>`
+              : '<span class="sources-env sources-no-key">no key needed</span>';
+          const linkHtml =
+            !s.hasApiKey && s.signupUrl
+              ? ` <a href="${esc(s.signupUrl)}" target="_blank" rel="noopener noreferrer" class="sources-signup">get key</a>`
+              : "";
           return `<div class="sources-row"><span class="sources-dot ${dot}"></span><span class="sources-name">${esc(s.label)}</span>${envLine}${linkHtml}</div>`;
         })
         .join("");
@@ -164,12 +180,75 @@ function renderMap(data: MapData): void {
     }
   }
 
+  // Scanner feeds indicator
+  const scannerFeeds = data.scannerFeeds;
+  const scannerIndicator = document.getElementById("scanner-indicator");
+  const scannerPopover = document.getElementById("scanner-popover");
+
+  if (scannerIndicator && scannerPopover) {
+    if (scannerFeeds && scannerFeeds.length > 0) {
+      const onlineCount = scannerFeeds.filter(
+        (f) => f.status === "online"
+      ).length;
+      scannerIndicator.textContent = `${onlineCount}/${scannerFeeds.length}`;
+      scannerIndicator.className = `scanner-indicator ${onlineCount > 0 ? "scanner-active" : "scanner-inactive"}`;
+      scannerIndicator.title = "Police scanner feeds";
+
+      const rows = scannerFeeds
+        .map((f) => {
+          const dot =
+            f.status === "online" ? "scanner-dot-on" : "scanner-dot-off";
+          const listenersHtml =
+            f.listeners !== undefined
+              ? `<span class="scanner-listeners">${f.listeners}</span>`
+              : "";
+          return `<div class="scanner-row">
+            <span class="scanner-dot ${dot}"></span>
+            <a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer" class="scanner-name">${esc(f.name)}</a>
+            ${listenersHtml}
+          </div>`;
+        })
+        .join("");
+
+      scannerPopover.innerHTML = `<div class="scanner-popover-title">Scanner Feeds</div>${rows}`;
+
+      scannerIndicator.addEventListener("click", (e) => {
+        e.stopPropagation();
+        scannerPopover.classList.toggle("scanner-popover-open");
+        // Close sources popover if open
+        const sourcesPopover = document.getElementById("sources-popover");
+        if (sourcesPopover)
+          sourcesPopover.classList.remove("sources-popover-open");
+      });
+
+      document.addEventListener("click", () => {
+        scannerPopover.classList.remove("scanner-popover-open");
+      });
+    } else {
+      scannerIndicator.textContent = "0";
+      scannerIndicator.className = "scanner-indicator scanner-inactive";
+      scannerIndicator.title = "No scanner feeds found";
+
+      scannerPopover.innerHTML = `<div class="scanner-popover-title">Scanner Feeds</div><div class="scanner-empty">No scanner feeds found for this area</div>`;
+
+      scannerIndicator.addEventListener("click", (e) => {
+        e.stopPropagation();
+        scannerPopover.classList.toggle("scanner-popover-open");
+      });
+
+      document.addEventListener("click", () => {
+        scannerPopover.classList.remove("scanner-popover-open");
+      });
+    }
+  }
+
   // Leaflet map
   const map = L.map("map", { zoomControl: false }).setView([lat, lng], 13);
   currentMap = map;
   L.control.zoom({ position: "topright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
     maxZoom: 19,
   }).addTo(map);
 
@@ -192,9 +271,12 @@ function renderMap(data: MapData): void {
     fillOpacity: 0.6,
   })
     .addTo(map)
-    .bindPopup(`<div class="popup"><strong>ZIP ${esc(zipCode)}</strong></div>`, {
-      className: "dark-popup",
-    });
+    .bindPopup(
+      `<div class="popup"><strong>ZIP ${esc(zipCode)}</strong></div>`,
+      {
+        className: "dark-popup",
+      }
+    );
 
   // Incident markers
   const markers = L.layerGroup().addTo(map);
@@ -321,7 +403,8 @@ async function submitZip(newZip: string) {
 
   // Show loading state in meta
   const metaEl = document.getElementById("meta");
-  if (metaEl) metaEl.innerHTML = '<span style="color:var(--muted)">Loading...</span>';
+  if (metaEl)
+    metaEl.innerHTML = '<span style="color:var(--muted)">Loading...</span>';
 
   const result = await app.callServerTool({
     name: "get_map_html",

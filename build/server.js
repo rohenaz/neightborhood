@@ -38326,6 +38326,199 @@ function buildBoundingBox(lat, lng, radiusMiles) {
   };
 }
 
+// src/sources/scanner.ts
+var USER_AGENT2 = "neighborhood-mcp/1.0 (scanner-feed-discovery)";
+var countyIdCache = new TTLCache(86400);
+var feedCache = new TTLCache(900);
+var STATE_FIPS = {
+  Alabama: 1,
+  Alaska: 2,
+  Arizona: 4,
+  Arkansas: 5,
+  California: 6,
+  Colorado: 8,
+  Connecticut: 9,
+  Delaware: 10,
+  Florida: 12,
+  Georgia: 13,
+  Hawaii: 15,
+  Idaho: 16,
+  Illinois: 17,
+  Indiana: 18,
+  Iowa: 19,
+  Kansas: 20,
+  Kentucky: 21,
+  Louisiana: 22,
+  Maine: 23,
+  Maryland: 24,
+  Massachusetts: 25,
+  Michigan: 26,
+  Minnesota: 27,
+  Mississippi: 28,
+  Missouri: 29,
+  Montana: 30,
+  Nebraska: 31,
+  Nevada: 32,
+  "New Hampshire": 33,
+  "New Jersey": 34,
+  "New Mexico": 35,
+  "New York": 36,
+  "North Carolina": 37,
+  "North Dakota": 38,
+  Ohio: 39,
+  Oklahoma: 40,
+  Oregon: 41,
+  Pennsylvania: 42,
+  "Rhode Island": 44,
+  "South Carolina": 45,
+  "South Dakota": 46,
+  Tennessee: 47,
+  Texas: 48,
+  Utah: 49,
+  Vermont: 50,
+  Virginia: 51,
+  Washington: 53,
+  "West Virginia": 54,
+  Wisconsin: 55,
+  Wyoming: 56,
+  "District of Columbia": 11
+};
+function parseLocation(displayName) {
+  const parts = displayName.split(",").map((p2) => p2.trim());
+  for (let i = 1;i < parts.length; i++) {
+    const candidate = parts[i];
+    if (candidate && STATE_FIPS[candidate] !== undefined) {
+      const countyPart = parts[i - 1];
+      if (countyPart) {
+        const county = countyPart.replace(/\s+County$/i, "").trim();
+        return { county, state: candidate };
+      }
+    }
+  }
+  return null;
+}
+async function findCountyId(stateFips, countyName) {
+  const cacheKey = `${stateFips}:${countyName}`;
+  const cached2 = countyIdCache.get(cacheKey);
+  if (cached2 !== undefined)
+    return cached2;
+  const url2 = `https://www.broadcastify.com/listen/stid/${stateFips}`;
+  const resp = await fetch(url2, {
+    headers: { "User-Agent": USER_AGENT2 },
+    signal: AbortSignal.timeout(1e4)
+  });
+  if (!resp.ok) {
+    throw new Error(`Broadcastify state page returned HTTP ${resp.status}`);
+  }
+  const html = await resp.text();
+  const countyPattern = /<a\s+href="\/listen\/ctid\/(\d+)"[^>]*>([^<]+)<\/a>/gi;
+  const lowerCounty = countyName.toLowerCase();
+  const countyMatches = [...html.matchAll(countyPattern)];
+  for (const match2 of countyMatches) {
+    const ctid = Number.parseInt(match2[1], 10);
+    const name = match2[2].trim();
+    if (name.toLowerCase().replace(/\s+county$/i, "").trim() === lowerCounty) {
+      countyIdCache.set(cacheKey, ctid);
+      return ctid;
+    }
+  }
+  for (const match2 of countyMatches) {
+    const ctid = Number.parseInt(match2[1], 10);
+    const name = match2[2].trim().toLowerCase();
+    if (name.includes(lowerCounty) || lowerCounty.includes(name.replace(/\s+county$/i, "").trim())) {
+      countyIdCache.set(cacheKey, ctid);
+      return ctid;
+    }
+  }
+  return null;
+}
+async function scrapeCountyFeeds(countyId, countyName) {
+  const url2 = `https://www.broadcastify.com/listen/ctid/${countyId}`;
+  const resp = await fetch(url2, {
+    headers: { "User-Agent": USER_AGENT2 },
+    signal: AbortSignal.timeout(1e4)
+  });
+  if (!resp.ok) {
+    throw new Error(`Broadcastify county page returned HTTP ${resp.status}`);
+  }
+  const html = await resp.text();
+  const feeds = [];
+  const feedPattern = /<a\s+href="\/listen\/feed\/(\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match2 of html.matchAll(feedPattern)) {
+    const feedId = match2[1];
+    const inner = match2[2];
+    const spanMatch = inner.match(/<span[^>]*class="[^"]*px13[^"]*"[^>]*>([^<]+)<\/span>/i);
+    let name = spanMatch ? spanMatch[1].trim() : inner.replace(/<[^>]+>/g, "").trim();
+    if (!name || !feedId)
+      continue;
+    const listenerInName = name.match(/\s*\(([0-9,]+)\)\s*$/);
+    let inlineListeners;
+    if (listenerInName) {
+      inlineListeners = Number.parseInt(listenerInName[1].replace(/,/g, ""), 10);
+      name = name.replace(/\s*\([0-9,]+\)\s*$/, "").trim();
+    }
+    name = name.replace(/^\.{3}\s*/, "").replace(/\s*\.{3}$/, "").trim();
+    if (feeds.some((f2) => f2.id === feedId))
+      continue;
+    feeds.push({
+      id: feedId,
+      name,
+      county: countyName,
+      listeners: inlineListeners,
+      url: `https://www.broadcastify.com/listen/feed/${feedId}`
+    });
+  }
+  return feeds;
+}
+async function checkFeedStatus(feed) {
+  try {
+    const resp = await fetch(feed.url, {
+      headers: { "User-Agent": USER_AGENT2 },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!resp.ok)
+      return { ...feed, status: "offline" };
+    const html = await resp.text();
+    const listenerMatch = html.match(/(\d+)\s*Listener/i);
+    const listeners = listenerMatch ? Number.parseInt(listenerMatch[1], 10) : feed.listeners;
+    const isOffline = html.includes("Currently Offline") || html.includes("Feed Offline");
+    const status = isOffline ? "offline" : "online";
+    return { ...feed, listeners, status };
+  } catch {
+    return { ...feed, status: "offline" };
+  }
+}
+async function discoverScannerFeeds(zipCode, _lat, _lng, displayName) {
+  const cacheKey = `scanner:${zipCode}`;
+  const cached2 = feedCache.get(cacheKey);
+  if (cached2)
+    return cached2;
+  const location = parseLocation(displayName);
+  if (!location)
+    return [];
+  const stateFips = STATE_FIPS[location.state];
+  if (stateFips === undefined)
+    return [];
+  const countyId = await findCountyId(stateFips, location.county);
+  if (!countyId)
+    return [];
+  const feeds = await scrapeCountyFeeds(countyId, location.county);
+  if (feeds.length === 0) {
+    feedCache.set(cacheKey, []);
+    return [];
+  }
+  const enriched = await Promise.all(feeds.map(checkFeedStatus));
+  enriched.sort((a2, b2) => {
+    if (a2.status === "online" && b2.status !== "online")
+      return -1;
+    if (a2.status !== "online" && b2.status === "online")
+      return 1;
+    return (b2.listeners ?? 0) - (a2.listeners ?? 0);
+  });
+  feedCache.set(cacheKey, enriched);
+  return enriched;
+}
+
 // src/sources/news.ts
 var GOOGLE_NEWS_RSS = (query) => `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
 function parseRSSItems(xml, defaultSource) {
@@ -39382,11 +39575,7 @@ async function fetchDatasetMetadata(dataset) {
   };
 }
 async function discoverCatalogDatasets() {
-  const searches = [
-    "crime incidents",
-    "police incidents",
-    "crime reports"
-  ];
+  const searches = ["crime incidents", "police incidents", "crime reports"];
   const results = await Promise.allSettled(searches.map(async (q2) => {
     const params = new URLSearchParams({
       q: q2,
@@ -39444,7 +39633,7 @@ function extractCoords(record3, latCol, lngCol, pointCol) {
   if (latCol && lngCol) {
     const lat = Number(record3[latCol]);
     const lng = Number(record3[lngCol]);
-    if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
       return { lat, lng };
     }
   }
@@ -39454,13 +39643,13 @@ function extractCoords(record3, latCol, lngCol, pointCol) {
       const p2 = point;
       const lat = Number(p2.latitude ?? p2.lat);
       const lng = Number(p2.longitude ?? p2.lng ?? p2.lon);
-      if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+      if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
         return { lat, lng };
       }
       if (Array.isArray(p2.coordinates) && p2.coordinates.length >= 2) {
         const cLng = Number(p2.coordinates[0]);
         const cLat = Number(p2.coordinates[1]);
-        if (isFinite(cLat) && isFinite(cLng) && cLat !== 0 && cLng !== 0) {
+        if (Number.isFinite(cLat) && Number.isFinite(cLng) && cLat !== 0 && cLng !== 0) {
           return { lat: cLat, lng: cLng };
         }
       }
@@ -39922,6 +40111,10 @@ function registerResources(server) {
         days: args.days
       })
     ]);
+    let scannerFeeds = [];
+    try {
+      scannerFeeds = await discoverScannerFeeds(args.zipCode, coords.lat, coords.lng, coords.displayName ?? "");
+    } catch {}
     const summary = `${collection.features.length} incidents near ${args.zipCode} (${args.radius}mi, ${args.days}d)`;
     return {
       structuredContent: {
@@ -39932,6 +40125,7 @@ function registerResources(server) {
         lng: coords.lng,
         features: collection.features,
         sourceErrors: collection.sourceErrors,
+        scannerFeeds,
         sources: SOURCE_METADATA.map((m2) => ({
           name: m2.name,
           label: m2.label,

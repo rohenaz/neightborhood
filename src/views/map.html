@@ -235,6 +235,112 @@
     }
     .sources-signup:hover { text-decoration: underline; }
 
+    .scanner-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .scanner-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.15s;
+    }
+    .scanner-indicator::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: currentColor;
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/%3E%3Cpath d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4'/%3E%3Cpath d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/%3E%3Cpath d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/%3E%3Cpath d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4'/%3E%3Cpath d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/%3E%3Cpath d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      flex-shrink: 0;
+    }
+    .scanner-indicator:hover { opacity: 0.85; }
+    .scanner-active {
+      background: hsl(210 72% 12%);
+      border: 1px solid hsl(210 72% 25%);
+      color: hsl(210 72% 65%);
+    }
+    .scanner-inactive {
+      background: hsl(0 0% 14%);
+      border: 1px solid hsl(0 0% 22%);
+      color: hsl(0 0% 50%);
+    }
+
+    .scanner-popover {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 2000;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      min-width: 280px;
+      max-height: 320px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .scanner-popover-open { display: block; }
+    .scanner-popover-title {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .scanner-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    .scanner-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .scanner-dot-on { background: hsl(142 72% 45%); }
+    .scanner-dot-off { background: hsl(0 0% 35%); }
+    .scanner-name {
+      color: var(--card-fg);
+      font-weight: 500;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .scanner-name:hover { color: var(--accent); text-decoration: underline; }
+    .scanner-listeners {
+      font-size: 10px;
+      color: var(--muted-fg);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .scanner-listeners::after { content: " listening"; }
+    .scanner-empty {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      padding: 4px 0;
+    }
+
     .dark-popup .leaflet-popup-content-wrapper {
       background: var(--card);
       color: var(--card-fg);
@@ -324,6 +430,10 @@
     <div class="sources-wrapper">
       <span class="sources-indicator" id="sources-indicator"></span>
       <div class="sources-popover" id="sources-popover"></div>
+    </div>
+    <div class="scanner-wrapper">
+      <span class="scanner-indicator scanner-inactive" id="scanner-indicator"></span>
+      <div class="scanner-popover" id="scanner-popover"></div>
     </div>
   </div>
   <div id="map" style="display:none"></div>
