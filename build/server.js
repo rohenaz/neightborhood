@@ -38796,26 +38796,6 @@ async function fetchNewsAlerts(zipCode, keywords = [], locationName) {
     snippet: item.description.slice(0, 200)
   }));
 }
-async function fetchNewsAsIncidents(zipCode, lat, lng, locationName) {
-  const alerts = await fetchNewsAlerts(zipCode, [], locationName);
-  const JITTER = 0.003;
-  return alerts.slice(0, 20).map((alert, idx) => {
-    const angle = idx / Math.min(alerts.length, 20) * 2 * Math.PI;
-    const r = JITTER * (0.5 + 0.5 * ((idx * 7 + 3) % 10) / 10);
-    return {
-      source: "news",
-      id: `news-${zipCode}-${idx}`,
-      type: "News Alert",
-      description: alert.title,
-      date: alert.publishedAt,
-      address: `${zipCode} area`,
-      lat: lat + r * Math.sin(angle),
-      lng: lng + r * Math.cos(angle),
-      url: alert.url,
-      severity: "low"
-    };
-  });
-}
 
 // src/tools/get-alerts.ts
 async function getAlerts(input) {
@@ -39852,10 +39832,6 @@ async function getCrimeStats(input) {
     {
       source: "spotcrime",
       fetch: () => fetchSpotCrime(lat, lng, radius, days)
-    },
-    {
-      source: "news",
-      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName)
     }
   ];
   const incidentResults = await Promise.allSettled(fetchers.map(({ fetch: fetch2 }) => fetch2()));

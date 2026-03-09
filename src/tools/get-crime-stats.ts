@@ -3,7 +3,6 @@ import { zipToCoordinates } from "../geocode.ts";
 import { classifySeverity } from "../normalize.ts";
 import { fetchArcGIS } from "../sources/arcgis.ts";
 import { fetchFBIStats } from "../sources/fbi.ts";
-import { fetchNewsAsIncidents } from "../sources/news.ts";
 import { fetchSocrata } from "../sources/socrata.ts";
 import { fetchSpotCrime } from "../sources/spotcrime.ts";
 import type {
@@ -28,7 +27,7 @@ export async function getCrimeStats(
   const sourceErrors: SourceError[] = [];
   const allIncidents: RawIncident[] = [];
 
-  // Gather incidents from all working sources
+  // Gather incidents from crime data sources only — news is shown in the News tab
   const radius = 10;
   const fetchers = [
     {
@@ -42,10 +41,6 @@ export async function getCrimeStats(
     {
       source: "spotcrime",
       fetch: () => fetchSpotCrime(lat, lng, radius, days),
-    },
-    {
-      source: "news",
-      fetch: () => fetchNewsAsIncidents(zipCode, lat, lng, coords.displayName),
     },
   ];
 
