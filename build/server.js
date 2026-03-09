@@ -40274,7 +40274,7 @@ function registerTools(server) {
 function registerResources(server) {
   ID(server, "get_map_html", {
     title: "Crime Map",
-    description: "This is the PRIMARY tool for neighborhood safety queries. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
+    description: "ALWAYS use this tool for ANY crime, safety, or neighborhood query — even if the user gives a city, state, or vague location instead of a ZIP code. If no ZIP code is provided, ask the user for one. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
