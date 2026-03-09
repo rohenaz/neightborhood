@@ -659,6 +659,9 @@ function renderMap(data: MapData): void {
   map.addControl(new maplibregl.NavigationControl(), "top-right");
 
   map.on("load", () => {
+    // Container may not be fully laid out when the map initializes inside
+    // a srcdoc iframe — force a resize so MapLibre picks up correct dimensions.
+    map.resize();
     addDataLayers(map, geoJsonFeatures, lat, lng, radius, zipCode);
     attachMapHandlers(map, geoJsonFeatures, zipCode);
   });
