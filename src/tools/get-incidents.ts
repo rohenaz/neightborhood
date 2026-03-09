@@ -66,7 +66,9 @@ export async function getIncidents(
       fetch: () => fetchNewsAsIncidents(zipCode, lat, lng),
     },
   ];
-  const sourceFetchers = allFetchers.filter((f) => enabledSources.includes(f.source));
+  const sourceFetchers = allFetchers.filter((f) =>
+    enabledSources.includes(f.source)
+  );
 
   const results = await Promise.allSettled(
     sourceFetchers.map(({ fetch }) => fetch())

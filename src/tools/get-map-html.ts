@@ -1,6 +1,6 @@
 import { zipToCoordinates } from "../geocode.ts";
-import { getIncidents } from "./get-incidents.ts";
 import type { IncidentFeature } from "../types.ts";
+import { getIncidents } from "./get-incidents.ts";
 
 export interface GetMapHtmlInput {
   zipCode: string;
@@ -78,7 +78,10 @@ function buildLegendItems(features: IncidentFeature[]): string {
   const types = new Map<string, string>();
   for (const f of features) {
     if (!types.has(f.properties.type)) {
-      types.set(f.properties.type, pinColor(f.properties.type, f.properties.severity));
+      types.set(
+        f.properties.type,
+        pinColor(f.properties.type, f.properties.severity)
+      );
     }
   }
 

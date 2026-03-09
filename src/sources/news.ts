@@ -27,14 +27,16 @@ function parseRSSItems(xml: string, defaultSource: string): RSSItem[] {
 
   // Simple XML regex parsing — avoids DOM parser dependency
   const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/g;
-  let match: RegExpExecArray | null;
+  const matches = xml.matchAll(itemRegex);
 
-  while ((match = itemRegex.exec(xml)) !== null) {
+  for (const match of matches) {
     const itemXml = match[1] ?? "";
 
     const title = extractTag(itemXml, "title");
-    const link = extractTag(itemXml, "link") || extractAttr(itemXml, "link", "href");
-    const pubDate = extractTag(itemXml, "pubDate") || extractTag(itemXml, "published");
+    const link =
+      extractTag(itemXml, "link") || extractAttr(itemXml, "link", "href");
+    const pubDate =
+      extractTag(itemXml, "pubDate") || extractTag(itemXml, "published");
     const description =
       extractTag(itemXml, "description") ||
       extractTag(itemXml, "content:encoded") ||
@@ -131,7 +133,9 @@ async function fetchFeed(url: string, sourceName: string): Promise<RSSItem[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`RSS fetch failed for ${sourceName}: HTTP ${response.status}`);
+    throw new Error(
+      `RSS fetch failed for ${sourceName}: HTTP ${response.status}`
+    );
   }
 
   const xml = await response.text();
@@ -174,9 +178,8 @@ export async function fetchNewsAlerts(
   });
 
   // Filter to crime-related content
-  const crimeItems = unique.filter(
-    (item) =>
-      isCrimeRelated(item.title + " " + item.description, keywords)
+  const crimeItems = unique.filter((item) =>
+    isCrimeRelated(`${item.title} ${item.description}`, keywords)
   );
 
   // Sort by recency
@@ -186,14 +189,16 @@ export async function fetchNewsAlerts(
     return db - da;
   });
 
-  return crimeItems.map((item): NewsAlert => ({
-    title: item.title,
-    url: item.link,
-    publishedAt: new Date(item.pubDate).toISOString(),
-    source: item.source ?? "Unknown",
-    description: item.description,
-    snippet: item.description.slice(0, 200),
-  }));
+  return crimeItems.map(
+    (item): NewsAlert => ({
+      title: item.title,
+      url: item.link,
+      publishedAt: new Date(item.pubDate).toISOString(),
+      source: item.source ?? "Unknown",
+      description: item.description,
+      snippet: item.description.slice(0, 200),
+    })
+  );
 }
 
 // For use in get_incidents — returns RawIncident-compatible stub for news items
@@ -207,16 +212,18 @@ export async function fetchNewsAsIncidents(
 ): Promise<RawIncident[]> {
   const alerts = await fetchNewsAlerts(zipCode, []);
 
-  return alerts.slice(0, 20).map((alert, idx): RawIncident => ({
-    source: "news",
-    id: `news-${zipCode}-${idx}`,
-    type: "News Alert",
-    description: alert.title,
-    date: alert.publishedAt,
-    address: `${zipCode} area`,
-    lat,
-    lng,
-    url: alert.url,
-    severity: "low",
-  }));
+  return alerts.slice(0, 20).map(
+    (alert, idx): RawIncident => ({
+      source: "news",
+      id: `news-${zipCode}-${idx}`,
+      type: "News Alert",
+      description: alert.title,
+      date: alert.publishedAt,
+      address: `${zipCode} area`,
+      lat,
+      lng,
+      url: alert.url,
+      severity: "low",
+    })
+  );
 }

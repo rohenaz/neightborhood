@@ -6,11 +6,115 @@ import type { RawIncident } from "../types.ts";
 
 const FBI_BASE = "https://api.usa.gov/crime/fbi/cde";
 
-// ORI codes for agencies covering Austin, TX / Travis County
-// Sterling Heights PD: MI0500900
-// Macomb County Sheriff: MI0500000
-// Michigan State Police Macomb: MI0500600
-const MACOMB_ORIS = ["MI0500900", "MI0500000", "MI0500600"];
+// State abbreviation lookup from coordinates (simplified US mapping)
+function stateFromCoords(lat: number, lng: number): string {
+  // Use a reverse-geocode heuristic based on lat/lng bounding boxes
+  // This covers the continental US; defaults to TX for demo purposes
+  const states: Array<{
+    abbr: string;
+    latMin: number;
+    latMax: number;
+    lngMin: number;
+    lngMax: number;
+  }> = [
+    { abbr: "TX", latMin: 25.8, latMax: 36.5, lngMin: -106.7, lngMax: -93.5 },
+    { abbr: "CA", latMin: 32.5, latMax: 42.0, lngMin: -124.5, lngMax: -114.1 },
+    { abbr: "NY", latMin: 40.5, latMax: 45.0, lngMin: -79.8, lngMax: -71.9 },
+    { abbr: "FL", latMin: 24.5, latMax: 31.0, lngMin: -87.6, lngMax: -80.0 },
+    { abbr: "IL", latMin: 36.9, latMax: 42.5, lngMin: -91.5, lngMax: -87.5 },
+    { abbr: "PA", latMin: 39.7, latMax: 42.3, lngMin: -80.5, lngMax: -74.7 },
+    { abbr: "OH", latMin: 38.4, latMax: 42.0, lngMin: -84.8, lngMax: -80.5 },
+    { abbr: "GA", latMin: 30.4, latMax: 35.0, lngMin: -85.6, lngMax: -80.8 },
+    { abbr: "NC", latMin: 33.8, latMax: 36.6, lngMin: -84.3, lngMax: -75.5 },
+    { abbr: "MI", latMin: 41.7, latMax: 48.3, lngMin: -90.4, lngMax: -82.4 },
+    { abbr: "WA", latMin: 45.5, latMax: 49.0, lngMin: -124.8, lngMax: -116.9 },
+    { abbr: "AZ", latMin: 31.3, latMax: 37.0, lngMin: -114.8, lngMax: -109.0 },
+    { abbr: "MA", latMin: 41.2, latMax: 42.9, lngMin: -73.5, lngMax: -69.9 },
+    { abbr: "CO", latMin: 37.0, latMax: 41.0, lngMin: -109.1, lngMax: -102.0 },
+    { abbr: "VA", latMin: 36.5, latMax: 39.5, lngMin: -83.7, lngMax: -75.2 },
+    { abbr: "NJ", latMin: 38.9, latMax: 41.4, lngMin: -75.6, lngMax: -73.9 },
+    { abbr: "TN", latMin: 35.0, latMax: 36.7, lngMin: -90.3, lngMax: -81.6 },
+    { abbr: "IN", latMin: 37.8, latMax: 41.8, lngMin: -88.1, lngMax: -84.8 },
+    { abbr: "MO", latMin: 36.0, latMax: 40.6, lngMin: -95.8, lngMax: -89.1 },
+    { abbr: "MD", latMin: 37.9, latMax: 39.7, lngMin: -79.5, lngMax: -75.0 },
+    { abbr: "WI", latMin: 42.5, latMax: 47.1, lngMin: -92.9, lngMax: -86.3 },
+    { abbr: "MN", latMin: 43.5, latMax: 49.4, lngMin: -97.2, lngMax: -89.5 },
+    { abbr: "OR", latMin: 42.0, latMax: 46.3, lngMin: -124.6, lngMax: -116.5 },
+    { abbr: "LA", latMin: 28.9, latMax: 33.0, lngMin: -94.0, lngMax: -89.0 },
+    { abbr: "AL", latMin: 30.2, latMax: 35.0, lngMin: -88.5, lngMax: -84.9 },
+    { abbr: "SC", latMin: 32.0, latMax: 35.2, lngMin: -83.4, lngMax: -78.5 },
+    { abbr: "KY", latMin: 36.5, latMax: 39.1, lngMin: -89.6, lngMax: -82.0 },
+    { abbr: "OK", latMin: 33.6, latMax: 37.0, lngMin: -103.0, lngMax: -94.4 },
+    { abbr: "CT", latMin: 41.0, latMax: 42.1, lngMin: -73.7, lngMax: -71.8 },
+    { abbr: "NV", latMin: 35.0, latMax: 42.0, lngMin: -120.0, lngMax: -114.0 },
+    { abbr: "UT", latMin: 37.0, latMax: 42.0, lngMin: -114.1, lngMax: -109.0 },
+  ];
+
+  for (const s of states) {
+    if (
+      lat >= s.latMin &&
+      lat <= s.latMax &&
+      lng >= s.lngMin &&
+      lng <= s.lngMax
+    ) {
+      return s.abbr;
+    }
+  }
+  return "TX"; // fallback
+}
+
+// Haversine distance in miles
+function haversineDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 3959; // Earth radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Find nearby FBI agency ORIs dynamically based on coordinates
+async function findNearbyORIs(
+  lat: number,
+  lng: number,
+  radiusMiles: number,
+  apiKey: string
+): Promise<Array<{ ori: string; name: string; lat: number; lng: number }>> {
+  const state = stateFromCoords(lat, lng);
+  const agencies = await fetchFBIAgenciesByState(state, apiKey);
+
+  return agencies
+    .filter(
+      (
+        a
+      ): a is FBIAgency & {
+        ori: string;
+        latitude: number;
+        longitude: number;
+      } =>
+        !!a.ori &&
+        typeof a.latitude === "number" &&
+        typeof a.longitude === "number"
+    )
+    .map((a) => ({
+      ori: a.ori,
+      name: a.agency_name ?? a.ori,
+      lat: a.latitude,
+      lng: a.longitude,
+      distance: haversineDistance(lat, lng, a.latitude, a.longitude),
+    }))
+    .filter((a) => a.distance <= radiusMiles)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 5); // top 5 nearest agencies
+}
 
 interface FBIOffense {
   offense_name?: string;
@@ -96,57 +200,46 @@ export async function fetchFBIAgenciesByState(
 export async function fetchFBI(
   lat: number,
   lng: number,
-  _radiusMiles: number
+  radiusMiles: number
 ): Promise<RawIncident[]> {
-  const apiKey = process.env["FBI_API_KEY"];
+  const apiKey = process.env.FBI_API_KEY;
   if (!apiKey) {
     throw new Error(
       "FBI_API_KEY is not set. Get a free key at https://api.data.gov/signup"
     );
   }
 
+  const nearbyAgencies = await findNearbyORIs(lat, lng, radiusMiles, apiKey);
+  if (nearbyAgencies.length === 0) return [];
+
   const currentYear = new Date().getFullYear();
   const reportYear = currentYear - 1; // FBI data is typically 1 year behind
 
   const results = await Promise.allSettled(
-    MACOMB_ORIS.map((ori) => fetchAgencyOffenses(ori, apiKey, reportYear))
+    nearbyAgencies.map((a) => fetchAgencyOffenses(a.ori, apiKey, reportYear))
   );
 
   const incidents: RawIncident[] = [];
 
-  // Agency locations (hardcoded since FBI data is aggregate)
-  const agencyLocations: Record<string, { lat: number; lng: number; name: string }> = {
-    MI0500900: { lat: 42.5803, lng: -83.0302, name: "Sterling Heights PD" },
-    MI0500000: { lat: 42.6665, lng: -82.9263, name: "Macomb County Sheriff" },
-    MI0500600: { lat: 42.5584, lng: -82.9371, name: "MSP Macomb Post" },
-  };
-
-  // Use provided coordinates as fallback for unknown ORIs
-  const fallbackLocation = { lat, lng, name: "Local Agency" };
-
-  for (let i = 0; i < MACOMB_ORIS.length; i++) {
-    const ori = MACOMB_ORIS[i];
-    if (!ori) continue;
+  for (let i = 0; i < nearbyAgencies.length; i++) {
+    const agency = nearbyAgencies[i];
+    if (!agency) continue;
 
     const result = results[i];
     if (!result || result.status === "rejected") continue;
 
-    const location = agencyLocations[ori] ?? fallbackLocation;
-    const offenses = result.value;
-
-    for (const offense of offenses) {
+    for (const offense of result.value) {
       if (!offense.offense_name || !offense.count) continue;
 
-      // Generate one representative incident per offense type
       incidents.push({
         source: "fbi",
-        id: `fbi-${ori}-${offense.offense_name}-${reportYear}`,
+        id: `fbi-${agency.ori}-${offense.offense_name}-${reportYear}`,
         type: offense.offense_name,
-        description: `${offense.offense_name}: ${offense.count} incidents reported in ${reportYear} (${agencyLocations[ori]?.name ?? "local agency"})`,
+        description: `${offense.offense_name}: ${offense.count} incidents reported in ${reportYear} (${agency.name})`,
         date: `${reportYear}-12-31T00:00:00.000Z`,
-        address: location.name,
-        lat: location.lat,
-        lng: location.lng,
+        address: agency.name,
+        lat: agency.lat,
+        lng: agency.lng,
         severity: undefined,
       });
     }
@@ -163,27 +256,28 @@ export interface FBIStats {
   offenses: Array<{ type: string; count: number }>;
 }
 
-export async function fetchFBIStats(): Promise<FBIStats[]> {
-  const apiKey = process.env["FBI_API_KEY"];
+export async function fetchFBIStats(
+  lat: number,
+  lng: number,
+  radiusMiles: number
+): Promise<FBIStats[]> {
+  const apiKey = process.env.FBI_API_KEY;
   if (!apiKey) {
     throw new Error(
       "FBI_API_KEY is not set. Get a free key at https://api.data.gov/signup"
     );
   }
 
+  const nearbyAgencies = await findNearbyORIs(lat, lng, radiusMiles, apiKey);
+  if (nearbyAgencies.length === 0) return [];
+
   const reportYear = new Date().getFullYear() - 1;
 
   const results = await Promise.allSettled(
-    MACOMB_ORIS.map((ori) => fetchAgencyOffenses(ori, apiKey, reportYear))
+    nearbyAgencies.map((a) => fetchAgencyOffenses(a.ori, apiKey, reportYear))
   );
 
-  const agencyNames: Record<string, string> = {
-    MI0500900: "Sterling Heights PD",
-    MI0500000: "Macomb County Sheriff",
-    MI0500600: "MSP Macomb Post",
-  };
-
-  return MACOMB_ORIS.map((ori, i): FBIStats => {
+  return nearbyAgencies.map((agency, i): FBIStats => {
     const result = results[i];
     const offenses =
       result?.status === "fulfilled"
@@ -195,8 +289,8 @@ export async function fetchFBIStats(): Promise<FBIStats[]> {
 
     return {
       year: reportYear,
-      agencyName: agencyNames[ori] ?? ori,
-      ori,
+      agencyName: agency.name,
+      ori: agency.ori,
       offenses,
     };
   });

@@ -48,14 +48,15 @@ function today(): string {
 }
 
 function normalizeRecord(record: CrimeMappingRecord, idx: number): RawIncident {
-  const lat =
-    record.Latitude ?? record.Lat ?? record.lat ?? 0;
-  const lng =
-    record.Longitude ?? record.Lng ?? record.lon ?? 0;
-  const type = record.CrimeType ?? record.Offense ?? record.Description ?? "Other";
+  const lat = record.Latitude ?? record.Lat ?? record.lat ?? 0;
+  const lng = record.Longitude ?? record.Lng ?? record.lon ?? 0;
+  const type =
+    record.CrimeType ?? record.Offense ?? record.Description ?? "Other";
   const address = record.Address ?? record.FullAddress ?? "Unknown";
   const rawDate = record.DateOccurred ?? record.IncidentDate ?? "";
-  const date = rawDate ? new Date(rawDate).toISOString() : new Date().toISOString();
+  const date = rawDate
+    ? new Date(rawDate).toISOString()
+    : new Date().toISOString();
   const id = record.IncidentID
     ? `cm-${record.IncidentID}`
     : `cm-${lat}-${lng}-${idx}`;
@@ -143,7 +144,12 @@ export async function fetchCrimeMapping(
     .filter((r) => {
       const lat = r.Latitude ?? r.Lat ?? r.lat;
       const lng = r.Longitude ?? r.Lng ?? r.lon;
-      return typeof lat === "number" && typeof lng === "number" && lat !== 0 && lng !== 0;
+      return (
+        typeof lat === "number" &&
+        typeof lng === "number" &&
+        lat !== 0 &&
+        lng !== 0
+      );
     })
     .map((r, idx) => normalizeRecord(r, idx));
 }
@@ -233,7 +239,12 @@ export async function fetchCrimeMappingAgencies(
     .filter((r) => {
       const lat = r.Latitude ?? r.Lat ?? r.lat;
       const lng = r.Longitude ?? r.Lng ?? r.lon;
-      return typeof lat === "number" && typeof lng === "number" && lat !== 0 && lng !== 0;
+      return (
+        typeof lat === "number" &&
+        typeof lng === "number" &&
+        lat !== 0 &&
+        lng !== 0
+      );
     })
     .map((r, idx) => normalizeRecord(r, idx));
 }

@@ -56,7 +56,12 @@ export class TTLCache<T> {
 export const geocodeCache = new TTLCache<{
   lat: number;
   lng: number;
-  boundingBox?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+  boundingBox?: {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  };
   displayName?: string;
 }>(86400); // 24 hours for geocode results
 

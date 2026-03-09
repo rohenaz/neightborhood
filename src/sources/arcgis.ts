@@ -77,7 +77,10 @@ function parseArcGISDate(value: unknown): string {
   return new Date().toISOString();
 }
 
-function extractString(obj: Record<string, unknown>, ...keys: string[]): string {
+function extractString(
+  obj: Record<string, unknown>,
+  ...keys: string[]
+): string {
   for (const key of keys) {
     const v = obj[key];
     if (v && typeof v === "string") return v.trim();
@@ -160,10 +163,21 @@ async function queryEndpoint(
     if (incidentMs < cutoffMs) continue;
 
     const type =
-      extractString(props as Record<string, unknown>, endpoint.typeField, "OFFENSE", "offense_type", "crime_type") || "Other";
+      extractString(
+        props as Record<string, unknown>,
+        endpoint.typeField,
+        "OFFENSE",
+        "offense_type",
+        "crime_type"
+      ) || "Other";
     const address =
-      extractString(props as Record<string, unknown>, endpoint.addressField, "ADDRESS", "address", "LOCATION") ||
-      "Unknown";
+      extractString(
+        props as Record<string, unknown>,
+        endpoint.addressField,
+        "ADDRESS",
+        "address",
+        "LOCATION"
+      ) || "Unknown";
 
     results.push({
       source: "arcgis",
@@ -249,10 +263,21 @@ async function queryEndpointJSON(
     if (incidentMs < cutoffMs) continue;
 
     const type =
-      extractString(props, endpoint.typeField, "OFFENSE", "offense_type", "crime_type") || "Other";
+      extractString(
+        props,
+        endpoint.typeField,
+        "OFFENSE",
+        "offense_type",
+        "crime_type"
+      ) || "Other";
     const address =
-      extractString(props, endpoint.addressField, "ADDRESS", "address", "LOCATION") ||
-      "Unknown";
+      extractString(
+        props,
+        endpoint.addressField,
+        "ADDRESS",
+        "address",
+        "LOCATION"
+      ) || "Unknown";
 
     results.push({
       source: "arcgis",
@@ -296,7 +321,11 @@ export async function fetchArcGIS(
     if (result.status === "fulfilled") {
       incidents.push(...result.value);
     } else {
-      errors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+      errors.push(
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason)
+      );
     }
   }
 

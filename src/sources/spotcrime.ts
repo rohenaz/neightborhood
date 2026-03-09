@@ -53,7 +53,12 @@ export async function fetchSpotCrime(
   lng: number,
   radiusMiles: number
 ): Promise<RawIncident[]> {
-  const apiKey = process.env["SPOTCRIME_API_KEY"] ?? "thepolice";
+  const apiKey = process.env.SPOTCRIME_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "SPOTCRIME_API_KEY is not set. Get a key at https://spotcrime.com/police/api"
+    );
+  }
   const radiusDegrees = milesToDegreesSimple(radiusMiles);
 
   const url = new URL(BASE_URL);
@@ -68,13 +73,17 @@ export async function fetchSpotCrime(
   });
 
   if (!response.ok) {
-    throw new Error(`SpotCrime API error: HTTP ${response.status} ${response.statusText}`);
+    throw new Error(
+      `SpotCrime API error: HTTP ${response.status} ${response.statusText}`
+    );
   }
 
   const data = (await response.json()) as SpotCrimeResponse;
 
   if (!data.crimes || !Array.isArray(data.crimes)) {
-    throw new Error("SpotCrime: unexpected response structure — missing crimes array");
+    throw new Error(
+      "SpotCrime: unexpected response structure — missing crimes array"
+    );
   }
 
   return data.crimes.map((crime, idx): RawIncident => {

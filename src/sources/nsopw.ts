@@ -62,35 +62,33 @@ export async function fetchNSOPW(
   const data = (await response.json()) as NSORPWResponse;
 
   const registrants: NSORPWRegistrant[] =
-    data.Registrants ??
-    data.registrants ??
-    data.Results ??
-    [];
+    data.Registrants ?? data.registrants ?? data.Results ?? [];
 
   if (!Array.isArray(registrants)) {
-    throw new Error("NSOPW: unexpected response structure — no registrants array");
+    throw new Error(
+      "NSOPW: unexpected response structure — no registrants array"
+    );
   }
 
   return registrants
     .map((reg, idx): RawIncident | null => {
-      const lat =
-        reg.Latitude ??
-        reg.lat ??
-        reg.Address?.Latitude ??
-        null;
+      const lat = reg.Latitude ?? reg.lat ?? reg.Address?.Latitude ?? null;
       const lng =
-        reg.Longitude ??
-        reg.lon ??
-        reg.lng ??
-        reg.Address?.Longitude ??
-        null;
+        reg.Longitude ?? reg.lon ?? reg.lng ?? reg.Address?.Longitude ?? null;
 
       if (lat === null || lng === null || lat === 0 || lng === 0) return null;
 
-      const name = reg.FullName ?? (`${reg.FirstName ?? ""} ${reg.LastName ?? ""}`.trim() || "Registrant");
+      const name =
+        reg.FullName ??
+        (`${reg.FirstName ?? ""} ${reg.LastName ?? ""}`.trim() || "Registrant");
       const offense = reg.OffenseDescription ?? "Sex Offense";
       const addr = reg.Address
-        ? [reg.Address.Street, reg.Address.City, reg.Address.State, reg.Address.Zip]
+        ? [
+            reg.Address.Street,
+            reg.Address.City,
+            reg.Address.State,
+            reg.Address.Zip,
+          ]
             .filter(Boolean)
             .join(", ")
         : "Unknown";

@@ -108,7 +108,14 @@ const TOOLS = [
           type: "array",
           items: {
             type: "string",
-            enum: ["spotcrime", "crimemapping", "arcgis", "nsopw", "fbi", "news"],
+            enum: [
+              "spotcrime",
+              "crimemapping",
+              "arcgis",
+              "nsopw",
+              "fbi",
+              "news",
+            ],
           },
           description: "Specific data sources to query (default: all)",
         },
@@ -190,7 +197,8 @@ const TOOLS = [
         keywords: {
           type: "array",
           items: { type: "string" },
-          description: "Keywords to filter results (e.g. ['shooting', 'robbery'])",
+          description:
+            "Keywords to filter results (e.g. ['shooting', 'robbery'])",
         },
       },
       required: ["zipCode"],

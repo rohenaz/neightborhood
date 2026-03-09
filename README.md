@@ -91,19 +91,20 @@ bun run src/index.ts
 
 ## Configuration
 
-All environment variables are optional. The plugin runs without any keys using public endpoints and the SpotCrime demo key.
+API keys are optional. Sources with missing keys are skipped gracefully — the plugin works with whatever you have.
 
-| Variable | Default | Purpose |
+| Variable | Purpose | Get a key |
 |---|---|---|
-| `SPOTCRIME_API_KEY` | `thepolice` (demo) | SpotCrime incident reports |
-| `FBI_API_KEY` | None | Historical NIBRS stats — get a free key at [api.data.gov/signup](https://api.data.gov/signup) |
-| `NEWSAPI_KEY` | None | Additional news coverage beyond Google News and Patch.com |
+| `FBI_API_KEY` | Historical NIBRS crime stats by agency | [api.data.gov/signup](https://api.data.gov/signup) (free) |
+| `SPOTCRIME_API_KEY` | Real-time incident reports | [spotcrime.com/police/api](https://spotcrime.com/police/api) |
+| `NEWSAPI_KEY` | Additional news coverage beyond RSS feeds | [newsapi.org/register](https://newsapi.org/register) |
 
-Set variables in your shell or `.env` file:
+Set variables in `~/.config/neighborhood/.env` or export in your shell:
 
 ```bash
-export FBI_API_KEY=your_key_here
-export SPOTCRIME_API_KEY=your_key_here
+# ~/.config/neighborhood/.env
+FBI_API_KEY=your_key_here
+SPOTCRIME_API_KEY=your_key_here
 ```
 
 ## Usage Examples

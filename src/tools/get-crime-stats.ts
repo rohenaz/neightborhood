@@ -45,7 +45,7 @@ export async function getCrimeStats(
   // FBI historical stats
   let fbiStats: Awaited<ReturnType<typeof fetchFBIStats>> = [];
   try {
-    fbiStats = await fetchFBIStats();
+    fbiStats = await fetchFBIStats(lat, lng, 10);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[fbi] stats fetch failed: ${msg}`);
