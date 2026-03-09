@@ -38326,6 +38326,113 @@ function buildBoundingBox(lat, lng, radiusMiles) {
   };
 }
 
+// src/format.ts
+function formatIncidentsSummary(collection) {
+  const { metadata, features, sourceErrors } = collection;
+  const lines = [];
+  lines.push(`${metadata.totalCount} incidents near ${metadata.zipCode} (${metadata.radius}mi, ${metadata.days}d)`);
+  const topTypes = Object.entries(metadata.countByType).sort(([, a2], [, b2]) => b2 - a2).slice(0, 5);
+  if (topTypes.length > 0) {
+    lines.push(`
+By type:`);
+    for (const [type, count] of topTypes) {
+      lines.push(`  ${type}: ${count}`);
+    }
+  }
+  const sourceCounts = Object.entries(metadata.countBySource).filter(([, n]) => n > 0);
+  if (sourceCounts.length > 0) {
+    lines.push(`
+By source:`);
+    for (const [src, count] of sourceCounts) {
+      lines.push(`  ${src}: ${count}`);
+    }
+  }
+  const sorted = [...features].sort((a2, b2) => new Date(b2.properties.date).getTime() - new Date(a2.properties.date).getTime()).slice(0, 10);
+  if (sorted.length > 0) {
+    lines.push(`
+Recent incidents:`);
+    for (const f2 of sorted) {
+      const p2 = f2.properties;
+      const date6 = p2.date.slice(0, 10);
+      lines.push(`  [${date6}] ${p2.type} at ${p2.address} (${p2.source})`);
+    }
+    const remaining = features.length - sorted.length;
+    if (remaining > 0) {
+      lines.push(`  ...and ${remaining} more`);
+    }
+  }
+  if (sourceErrors.length > 0) {
+    lines.push(`
+Source errors:`);
+    for (const e of sourceErrors) {
+      lines.push(`  ${e.source}: ${e.error}`);
+    }
+  }
+  return lines.join(`
+`);
+}
+function formatStatsSummary(stats) {
+  const lines = [];
+  lines.push(`${stats.totalIncidents} incidents in ${stats.zipCode} over ${stats.days}d — trend: ${stats.trend}`);
+  const { bySeverity } = stats;
+  lines.push(`Severity: ${bySeverity.high ?? 0} high / ${bySeverity.medium ?? 0} medium / ${bySeverity.low ?? 0} low`);
+  if (stats.topTypes.length > 0) {
+    lines.push(`
+Top crime types:`);
+    for (const t of stats.topTypes.slice(0, 5)) {
+      lines.push(`  ${t.type}: ${t.count} (${t.percentage.toFixed(1)}%)`);
+    }
+  }
+  const sourcePairs = Object.entries(stats.bySource).filter(([, n]) => n > 0);
+  if (sourcePairs.length > 0) {
+    lines.push(`
+By source:`);
+    for (const [src, count] of sourcePairs) {
+      lines.push(`  ${src}: ${count}`);
+    }
+  }
+  if (stats.sourceErrors?.length > 0) {
+    lines.push(`
+Source errors:`);
+    for (const e of stats.sourceErrors) {
+      lines.push(`  ${e.source}: ${e.error}`);
+    }
+  }
+  return lines.join(`
+`);
+}
+function formatAlertsSummary(result) {
+  const lines = [];
+  const displayed = result.alerts.slice(0, 10);
+  lines.push(`${result.totalCount} crime alerts for ${result.zipCode} (showing ${displayed.length})`);
+  for (const alert of displayed) {
+    const date6 = alert.publishedAt.slice(0, 10);
+    lines.push(`- [${date6}] ${alert.title} (${alert.source}) — ${alert.url}`);
+  }
+  if (result.sourceErrors?.length > 0) {
+    lines.push(`
+Source errors:`);
+    for (const e of result.sourceErrors) {
+      lines.push(`  ${e.source}: ${e.error}`);
+    }
+  }
+  return lines.join(`
+`);
+}
+function formatSourcesList(sources, summary) {
+  const lines = [];
+  if (summary) {
+    lines.push(summary);
+  }
+  for (const s2 of sources) {
+    const status = s2.online ? "online" : "offline";
+    const keyInfo = s2.requiresApiKey ? s2.hasApiKey ? " [key set]" : ` [needs ${s2.apiKeyEnvVar}]` : "";
+    lines.push(`${s2.label} (${s2.name}): ${status}${keyInfo}`);
+  }
+  return lines.join(`
+`);
+}
+
 // src/sources/scanner.ts
 var USER_AGENT2 = "neighborhood-mcp/1.0 (scanner-feed-discovery)";
 var countyIdCache = new TTLCache(86400);
@@ -40098,12 +40205,13 @@ function createServer() {
 function registerTools(server) {
   server.registerTool("get_incidents", {
     title: "Get Crime Incidents",
-    description: "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, Socrata, and SpotCrime sources.",
+    description: "Text summary of recent crime incidents near a US ZIP code. For interactive visualization, use get_map_html instead.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
       sources: exports_external.array(exports_external.enum(["arcgis", "socrata", "spotcrime"])).optional().describe("Data sources to query (default: all)"),
-      days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days to look back (default: 30)")
+      days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days to look back (default: 30)"),
+      format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
     const result = await getIncidents({
@@ -40112,60 +40220,60 @@ function registerTools(server) {
       sources: args.sources,
       days: args.days
     });
+    const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatIncidentsSummary(result);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(result, null, 2) }
-      ]
+      content: [{ type: "text", text }]
     };
   });
   server.registerTool("get_crime_stats", {
     title: "Get Crime Statistics",
-    description: "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, and trend analysis.",
+    description: "Text summary of aggregated crime statistics for a ZIP code. For interactive visualization, use get_crime_data instead.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
-      days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for recent trend analysis (default: 30)")
+      days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for recent trend analysis (default: 30)"),
+      format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
     const result = await getCrimeStats(args);
+    const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatStatsSummary(result);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(result, null, 2) }
-      ]
+      content: [{ type: "text", text }]
     };
   });
   server.registerTool("list_sources", {
     title: "List Data Sources",
     description: "Show all data sources with connection status, what each one provides, and which API keys you can add for more coverage.",
-    inputSchema: {}
-  }, async () => {
+    inputSchema: {
+      format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
+    }
+  }, async (args) => {
     const result = await listSources();
+    const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatSourcesList(result);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(result, null, 2) }
-      ]
+      content: [{ type: "text", text }]
     };
   });
   server.registerTool("get_alerts", {
     title: "Get Crime Alerts",
-    description: "Fetch recent crime news and alerts for a ZIP code from RSS feeds (Google News, Patch.com). Returns article titles, links, and snippets.",
+    description: "Brief text summary of recent crime news for a ZIP code. For full interactive view with filtering, use get_crime_data instead.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
       keywords: exports_external.array(exports_external.string()).optional().describe("Keywords to filter crime news (default: broad crime-related terms)"),
-      limit: exports_external.number().int().positive().max(50).optional().default(20).describe("Max alerts to return (default: 20)")
+      limit: exports_external.number().int().positive().max(50).optional().default(20).describe("Max alerts to return (default: 20)"),
+      format: exports_external.enum(["summary", "json"]).optional().default("summary").describe("Output format: 'summary' for concise text (default), 'json' for raw data")
     }
   }, async (args) => {
     const result = await getAlerts(args);
+    const text = args.format === "json" ? JSON.stringify(result, null, 2) : formatAlertsSummary(result);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(result, null, 2) }
-      ]
+      content: [{ type: "text", text }]
     };
   });
 }
 function registerResources(server) {
   ID(server, "get_map_html", {
     title: "Crime Map",
-    description: "Generate an interactive crime map rendered inline. Shows color-coded markers by crime type with clickable popups, a legend, and a dark UI.",
+    description: "This is the PRIMARY tool for neighborhood safety queries. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
       radius: exports_external.number().positive().max(50).optional().default(5).describe("Search radius in miles (default: 5)"),
@@ -40260,7 +40368,7 @@ function registerResources(server) {
   });
   ID(server, "get_crime_data", {
     title: "Crime Data Table",
-    description: "Generate an interactive crime statistics and alerts table rendered inline. Shows incident counts by severity and type, trend analysis, and recent news alerts.",
+    description: "Renders an interactive statistics dashboard with crime trends and news. Use alongside get_map_html for complete picture.",
     inputSchema: {
       zipCode: exports_external.string().min(5).max(10).describe("US ZIP code"),
       days: exports_external.number().int().positive().max(365).optional().default(30).describe("Number of days for trend analysis (default: 30)")

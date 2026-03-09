@@ -13,10 +13,11 @@ These are callable tools, not APIs. Call them by name:
 
 | Tool | What It Does |
 |------|-------------|
-| `get_incidents` | Fetch recent crime incidents as GeoJSON. Args: zipCode, radius, sources, days |
-| `get_crime_stats` | Aggregated crime stats and trends. Args: zipCode, days |
-| `get_alerts` | Recent crime news from RSS feeds. Args: zipCode, keywords |
-| `get_map_html` | Interactive crime map rendered inline via MCP Apps. Args: zipCode, radius, days |
+| `get_map_html` | Interactive crime map rendered inline via MCP Apps. Includes all incident data, scanner feeds, and source info. Args: zipCode, radius, days |
+| `get_crime_data` | Data table with FBI stats AND news alerts combined in one call. Args: zipCode, days |
+| `get_incidents` | Raw incident GeoJSON — text-only fallback or explicit user request only. Args: zipCode, radius, sources, days |
+| `get_crime_stats` | Raw aggregated stats — text-only fallback or explicit user request only. Args: zipCode, days |
+| `get_alerts` | Raw news alerts — text-only fallback or explicit user request only. Args: zipCode, keywords |
 | `list_sources` | Check which data sources are online |
 
 ## Data Sources
@@ -27,17 +28,23 @@ Three sources are available: **ArcGIS** (official city/county GIS crime data), *
 
 For any safety question:
 
-1. Call `get_map_html` with the zip code — this renders an interactive map inline AND returns incident data in one call
-2. Call `get_crime_stats` for aggregated statistics and trends
-3. Call `get_alerts` for recent news context
-4. Synthesize findings into a concise safety report
+1. Call `get_map_html` first — renders the interactive map inline with all incident data, scanner feeds, and source info
+2. Call `get_crime_data` second — renders the data table with FBI stats AND news alerts in a single call
+3. Synthesize findings from the text summaries returned by both tools into a concise safety report
+
+**Never call text tools (`get_incidents`, `get_crime_stats`, `get_alerts`) after UI tools (`get_map_html`, `get_crime_data`) for the same zip code. The UI tools already include all the same data. The text summary in the tool response is sufficient for your analysis.**
+
+Only call the raw text tools (`get_incidents`, `get_crime_stats`, `get_alerts`) when:
+- The user explicitly asks for raw data
+- You are in a text-only environment without UI rendering
 
 For quick questions ("show me a crime map"), just call `get_map_html`. Don't overcomplicate it.
 
 ## Key Rules
 
 - **Call MCP tools directly.** Never write bash scripts, save files, or simulate API calls.
-- **`get_map_html` renders inline** via MCP Apps. Don't save HTML to files. The host renders it automatically.
+- **`get_map_html` and `get_crime_data` render inline** via MCP Apps. Don't save HTML to files. The host renders automatically.
+- **UI tools cover everything.** Do not follow up UI tool calls with redundant text tool calls for the same zip code.
 - **Check `sourceErrors`** in responses. If sources failed, tell the user which ones and why.
 - **Don't dump raw JSON.** Summarize findings in prose with key stats highlighted.
 - If a zip code returns few results, offer to expand radius or time window.

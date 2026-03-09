@@ -18,6 +18,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { zipToCoordinates } from "./geocode.ts";
+import {
+  formatAlertsSummary,
+  formatIncidentsSummary,
+  formatSourcesList,
+  formatStatsSummary,
+} from "./format.ts";
 import { discoverScannerFeeds } from "./sources/scanner.ts";
 import { getAlerts } from "./tools/get-alerts.ts";
 import { getCrimeStats } from "./tools/get-crime-stats.ts";
@@ -67,7 +73,7 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Incidents",
       description:
-        "Fetch recent crime incidents near a US ZIP code. Returns a unified GeoJSON FeatureCollection from ArcGIS, Socrata, and SpotCrime sources.",
+        "Text summary of recent crime incidents near a US ZIP code. For interactive visualization, use get_map_html instead.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code (e.g. 78701)"),
         radius: z
@@ -89,6 +95,13 @@ function registerTools(server: McpServer) {
           .optional()
           .default(30)
           .describe("Number of days to look back (default: 30)"),
+        format: z
+          .enum(["summary", "json"])
+          .optional()
+          .default("summary")
+          .describe(
+            "Output format: 'summary' for concise text (default), 'json' for raw data"
+          ),
       },
     },
     async (args) => {
@@ -98,10 +111,12 @@ function registerTools(server: McpServer) {
         sources: args.sources as IncidentSource[] | undefined,
         days: args.days,
       });
+      const text =
+        args.format === "json"
+          ? JSON.stringify(result, null, 2)
+          : formatIncidentsSummary(result);
       return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
+        content: [{ type: "text" as const, text }],
       };
     }
   );
@@ -111,7 +126,7 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Statistics",
       description:
-        "Get aggregated crime statistics for a ZIP code: incident counts by type and severity, and trend analysis.",
+        "Text summary of aggregated crime statistics for a ZIP code. For interactive visualization, use get_crime_data instead.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code"),
         days: z
@@ -122,14 +137,23 @@ function registerTools(server: McpServer) {
           .optional()
           .default(30)
           .describe("Number of days for recent trend analysis (default: 30)"),
+        format: z
+          .enum(["summary", "json"])
+          .optional()
+          .default("summary")
+          .describe(
+            "Output format: 'summary' for concise text (default), 'json' for raw data"
+          ),
       },
     },
     async (args) => {
       const result = await getCrimeStats(args);
+      const text =
+        args.format === "json"
+          ? JSON.stringify(result, null, 2)
+          : formatStatsSummary(result);
       return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
+        content: [{ type: "text" as const, text }],
       };
     }
   );
@@ -140,14 +164,24 @@ function registerTools(server: McpServer) {
       title: "List Data Sources",
       description:
         "Show all data sources with connection status, what each one provides, and which API keys you can add for more coverage.",
-      inputSchema: {},
+      inputSchema: {
+        format: z
+          .enum(["summary", "json"])
+          .optional()
+          .default("summary")
+          .describe(
+            "Output format: 'summary' for concise text (default), 'json' for raw data"
+          ),
+      },
     },
-    async () => {
+    async (args) => {
       const result = await listSources();
+      const text =
+        args.format === "json"
+          ? JSON.stringify(result, null, 2)
+          : formatSourcesList(result);
       return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
+        content: [{ type: "text" as const, text }],
       };
     }
   );
@@ -157,7 +191,7 @@ function registerTools(server: McpServer) {
     {
       title: "Get Crime Alerts",
       description:
-        "Fetch recent crime news and alerts for a ZIP code from RSS feeds (Google News, Patch.com). Returns article titles, links, and snippets.",
+        "Brief text summary of recent crime news for a ZIP code. For full interactive view with filtering, use get_crime_data instead.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code"),
         keywords: z
@@ -174,14 +208,23 @@ function registerTools(server: McpServer) {
           .optional()
           .default(20)
           .describe("Max alerts to return (default: 20)"),
+        format: z
+          .enum(["summary", "json"])
+          .optional()
+          .default("summary")
+          .describe(
+            "Output format: 'summary' for concise text (default), 'json' for raw data"
+          ),
       },
     },
     async (args) => {
       const result = await getAlerts(args);
+      const text =
+        args.format === "json"
+          ? JSON.stringify(result, null, 2)
+          : formatAlertsSummary(result);
       return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
+        content: [{ type: "text" as const, text }],
       };
     }
   );
@@ -198,7 +241,7 @@ function registerResources(server: McpServer) {
     {
       title: "Crime Map",
       description:
-        "Generate an interactive crime map rendered inline. Shows color-coded markers by crime type with clickable popups, a legend, and a dark UI.",
+        "This is the PRIMARY tool for neighborhood safety queries. Shows all incident data on an interactive map with color-coded markers by crime type, clickable popups, a legend, and a dark UI.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code"),
         radius: z
@@ -348,7 +391,7 @@ function registerResources(server: McpServer) {
     {
       title: "Crime Data Table",
       description:
-        "Generate an interactive crime statistics and alerts table rendered inline. Shows incident counts by severity and type, trend analysis, and recent news alerts.",
+        "Renders an interactive statistics dashboard with crime trends and news. Use alongside get_map_html for complete picture.",
       inputSchema: {
         zipCode: z.string().min(5).max(10).describe("US ZIP code"),
         days: z
